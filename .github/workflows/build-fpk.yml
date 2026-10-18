@@ -37,14 +37,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: secrets.DOCKERHUB_USERNAME != ''
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to houlang mirror
-        if: secrets.HOULANG_USERNAME != ''
+        continue-on-error: true
         uses: docker/login-action@v3
         with:
           registry: mirror.houlang.cloud
@@ -80,13 +80,14 @@ jobs:
           docker build --build-arg BASE_REGISTRY=docker.io -f backend/Dockerfile $TAGS .
           docker push ghcr.io/aeson81/ktv-home-cloud:latest
           docker push ghcr.io/aeson81/ktv-home-cloud:${VER}
+          # 可选推送：失败不影响构建（Secrets 未配置时跳过）
           if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-            docker push aeson81/ktv-home-cloud:latest
-            docker push aeson81/ktv-home-cloud:${VER}
+            docker push aeson81/ktv-home-cloud:latest || echo "Docker Hub push skipped/failed"
+            docker push aeson81/ktv-home-cloud:${VER} || echo "Docker Hub push skipped/failed"
           fi
           if [ -n "${{ secrets.HOULANG_USERNAME }}" ]; then
-            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
-            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER}
+            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:latest || echo "Houlang push skipped/failed"
+            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER} || echo "Houlang push skipped/failed"
           fi
 
       - name: Prepare fnpack (vendored, checksum verified)
