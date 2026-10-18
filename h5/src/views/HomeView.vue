@@ -57,7 +57,7 @@ import { useToast } from '../composables/useToast'
 import TabBar from '../components/TabBar.vue'
 import SongRow from '../components/SongRow.vue'
 import NowPlayingBar from '../components/NowPlayingBar.vue'
-import { Search, UserRound, Sparkles, UsersRound, ListMusic, Heart, Languages, LayoutGrid } from 'lucide-vue-next'
+import { Search, UserRound, Sparkles, UsersRound, ListMusic, Heart, Languages, LayoutGrid, Trophy } from 'lucide-vue-next'
 
 const router = useRouter()
 const user = useUserStore()
@@ -73,6 +73,7 @@ const cats = [
   { icon: UserRound, label: '歌手' },
   { icon: Languages, label: '语种' },
   { icon: LayoutGrid, label: '分类' },
+  { icon: Trophy, label: '排行', route: '/rankings' },
   { icon: Sparkles, label: '新歌' },
   { icon: UsersRound, label: '对唱' },
   { icon: ListMusic, label: '歌单' },
@@ -127,6 +128,7 @@ async function order(song) {
  * @param {Object} c - Category object with a `label` field
  */
 function onCat(c) {
+  if (c.route) { router.push(c.route); return }
   if (c.label === '歌手') router.push({ name: 'browse', query: { tab: 'artists' } })
   else if (c.label === '语种') router.push({ name: 'browse', query: { tab: 'languages' } })
   else if (c.label === '分类') router.push({ name: 'browse', query: { tab: 'tags' } })

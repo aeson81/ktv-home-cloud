@@ -24,6 +24,7 @@ const routes = [
   { path: '/queue', name: 'queue', component: () => import('../views/QueueView.vue') },                           // H5-05
   { path: '/remote', name: 'remote', component: () => import('../views/RemoteView.vue') },                        // H5-06
   { path: '/lyric', name: 'lyric', component: () => import('../views/LyricView.vue') },                           // H5-07
+  { path: '/rankings', name: 'rankings', component: () => import('../views/RankingsView.vue') },
 
   // 管理后台（免登录，PC/手机浏览器）
   // Admin panel (no login required, accessible from PC/mobile browser)

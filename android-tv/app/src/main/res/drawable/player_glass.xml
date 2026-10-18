@@ -1,2 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="#B5202638"/><corners android:radius="14dp"/><stroke android:width="1dp" android:color="#447B849C"/></shape>
+<!-- 科技感玻璃拟态：深蓝底 + 青色描边 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#CC0A1428"/>
+    <corners android:radius="14dp"/>
+    <stroke android:width="1dp" android:color="#6638BDF8"/>
+</shape>

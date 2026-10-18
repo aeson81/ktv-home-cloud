@@ -27,6 +27,8 @@ public interface SongRepository extends JpaRepository<Song, Long> {
 
     java.util.List<Song> findTop50ByOrderByCreatedAtDesc();
 
+    java.util.List<Song> findTop50ByOrderByPlayCountDesc();
+
     org.springframework.data.domain.Page<Song> findByMediaType(String mediaType, org.springframework.data.domain.Pageable pageable);
 
     org.springframework.data.domain.Page<Song> findByStatus(String status, org.springframework.data.domain.Pageable pageable);

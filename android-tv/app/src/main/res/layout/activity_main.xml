@@ -326,7 +326,7 @@
             android:id="@+id/txtVolume"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/gold"
+            android:textColor="@color/tech_blue"
             android:textSize="20sp"
             android:textStyle="bold" />
         <ProgressBar
@@ -337,7 +337,7 @@
             android:layout_marginStart="16dp"
             android:layout_weight="1"
             android:max="100"
-            android:progressTint="@color/gold" />
+            android:progressTint="@color/tech_blue" />
     </LinearLayout>
 
     <!-- 原唱/伴唱选择栏：确认键呼出，屏幕下方，方向键选择 + 确认生效 -->
@@ -351,7 +351,7 @@
         android:orientation="vertical"
         android:padding="18dp"
         android:visibility="gone">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="演唱模式" android:textColor="@color/gold" android:textSize="18sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="演唱模式" android:textColor="@color/tech_blue" android:textSize="18sp" android:textStyle="bold" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">
             <Button android:id="@+id/btnVocalOriginal" android:layout_width="0dp" android:layout_height="64dp" android:layout_weight="1" android:text="原唱" android:textSize="20sp" />
             <Button android:id="@+id/btnVocalAccompaniment" android:layout_width="0dp" android:layout_height="64dp" android:layout_weight="1" android:layout_marginStart="16dp" android:text="伴唱" android:textSize="20sp" />

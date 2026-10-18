@@ -108,6 +108,8 @@ export const api = {
   adminCloudConfig: () => request('/admin/cloud/config'),
   adminUpdateCloudConfig: (data) => request('/admin/cloud/config', { method: 'PUT', body: JSON.stringify(data) }),
   adminRemountCloud: () => request('/admin/cloud/config/remount', { method: 'POST' }),
+  rankingsHot: () => request('/rankings/hot'),
+  rankingsNew: () => request('/rankings/new'),
   adminDeleteSources: (ids = [], filters = {}) => request('/admin/source-library', {
     method: 'DELETE', body: JSON.stringify({ ids, ...filters })
   }),

@@ -19,4 +19,11 @@
     <color name="tag_mv">#38bdf8</color>
     <color name="tag_audio">#94a3b8</color>
     <color name="glass_border">#22ffffff</color>
+    <!-- 科技感配色 -->
+    <color name="tech_blue">#38bdf8</color>
+    <color name="tech_blue_dark">#0ea5e9</color>
+    <color name="tech_purple">#818cf8</color>
+    <color name="tech_bg">#050810</color>
+    <color name="tech_panel">#0f172a</color>
+    <color name="tech_grid">#0a1428</color>
 </resources>
