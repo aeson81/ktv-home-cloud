@@ -58,7 +58,7 @@ RUN sed -i 's#https://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/
     fi
 
 COPY --from=build /build/target/home-ktv-server.jar app.jar
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY backend/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8080
