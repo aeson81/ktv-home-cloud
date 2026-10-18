@@ -1,1 +1,1 @@
-{"data-share":{"shares":[{"name":"ktv-home-cloud"}]},"docker-project":{"projects":[{"name":"ktv-home-cloud","path":"docker"}]}}
+{"api-scope":["trim.file.sharedAccess"],"data-share":{"shares":[{"name":"ktv-home-cloud"}]},"docker-project":{"projects":[{"name":"ktv-home-cloud","path":"docker"}]}}
