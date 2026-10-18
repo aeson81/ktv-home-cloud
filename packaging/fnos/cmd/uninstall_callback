@@ -1,15 +1,35 @@
 #!/bin/bash
-# 卸载后回调：停止并移除容器。数据目录（曲库、数据库、网盘配置）保留，
-# 重装后可继续使用；如需彻底清除请手动删除应用数据目录。
+# 卸载后回调：停止并移除容器。根据用户在卸载向导中的选择决定是否保留数据。
 
 APP_ROOT="/var/apps/ktv-home-cloud"
 DOCKER_DIR="${APP_ROOT}/target/docker"
 export TRIM_PKGVAR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
 
+# 停止容器
 if [ -f "${DOCKER_DIR}/docker-compose.yaml" ]; then
   set -a
   [ -f "${DOCKER_DIR}/.env" ] && . "${DOCKER_DIR}/.env"
   set +a
   docker compose -f "${DOCKER_DIR}/docker-compose.yaml" --project-name ktv-home-cloud down 2>/dev/null || true
 fi
+
+# 读取卸载向导的用户选择（飞牛将 wizard/uninstall 的 key 存为环境变量或文件）
+# 尝试多种可能的位置
+KEEP_DATA="${WIZARD_KEEP_DATA:-${wizard_keep_data:-yes}}"
+if [ -f "${TRIM_PKGVAR}/uninstall_keep_data" ]; then
+  KEEP_DATA=$(cat "${TRIM_PKGVAR}/uninstall_keep_data" 2>/dev/null || echo "yes")
+fi
+
+if [ "$KEEP_DATA" = "no" ]; then
+  echo "用户选择清空数据，删除应用数据目录..."
+  # 数据目录位置（飞牛应用数据）
+  DATA_DIR="/vol2/@appdata/ktv-home-cloud"
+  if [ -d "$DATA_DIR" ]; then
+    rm -rf "$DATA_DIR"
+    echo "已删除 $DATA_DIR"
+  fi
+else
+  echo "保留应用数据，重装后可继续使用。"
+fi
+
 exit 0
