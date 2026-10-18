@@ -10,16 +10,72 @@
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}"
 LOG="${TRIM_TEMP_LOGFILE:-/tmp/ktv-home-cloud-install.log}"
 ALIST_DEFAULT_PW="KtvAlist2026ChangeMe"
+# fpk 所在目录（compose 文件位置）
+APP_DIR="$(cd "$(dirname "$0")/../app" && pwd)"
+COMPOSE_FILE="$APP_DIR/docker/docker-compose.yaml"
 
 mkdir -p "$VAR_DIR"
+
+# 读取向导参数（飞牛把 wizard 里定义的 key 作为环境变量传入）。
+# 兼容多种可能的前缀。
+get_wizard_value() {
+  local key="$1"
+  local default="$2"
+  for prefix in "" "WIZARD_" "TRIM_WIZARD_"; do
+    local var="${prefix}${key}"
+    local val="${!var:-}"
+    if [ -n "$val" ]; then
+      echo "$val"
+      return
+    fi
+  done
+  echo "$default"
+}
+
+KTV_PORT="$(get_wizard_value "KTV_PORT" "8080")"
+ALIST_PORT="$(get_wizard_value "ALIST_PORT" "5244")"
+SOURCE_MUSIC_PATH="$(get_wizard_value "SOURCE_MUSIC_PATH" "")"
+
+# 把端口写入 compose 文件（替换占位符）。
+if [ -f "$COMPOSE_FILE" ]; then
+  # KTV 端口：替换 "8080:8080/tcp" 中的主机端口
+  sed -i "s/\"8080:8080\/tcp\"/\"${KTV_PORT}:8080\/tcp\"/" "$COMPOSE_FILE" 2>>"$LOG" || true
+  # alist 端口：替换 "5244:5244" 中的主机端口
+  sed -i "s/\"5244:5244\"/\"${ALIST_PORT}:5244\"/" "$COMPOSE_FILE" 2>>"$LOG" || true
+  echo "端口配置：KTV=${KTV_PORT}, alist=${ALIST_PORT}" >> "$LOG"
+fi
+
+# 自定义源目录：如果向导里填写了，保存到配置文件并立即挂载。
+# （也兼容旧版手动创建的 custom-source.conf）
+CUSTOM_CONF="$VAR_DIR/custom-source.conf"
+if [ -n "$SOURCE_MUSIC_PATH" ] && [ -d "$SOURCE_MUSIC_PATH" ]; then
+  echo "$SOURCE_MUSIC_PATH" > "$CUSTOM_CONF"
+  echo "已保存自定义源目录：$SOURCE_MUSIC_PATH" >> "$LOG"
+fi
+
+# 自动恢复自定义源目录的 bind 挂载（解决 fpk 重装后手动 bind 丢失的问题）。
+if [ -f "$CUSTOM_CONF" ]; then
+  CUSTOM_SRC="$(head -n 1 "$CUSTOM_CONF" | tr -d '\r\n')"
+  if [ -n "$CUSTOM_SRC" ] && [ -d "$CUSTOM_SRC" ]; then
+    mkdir -p "$VAR_DIR/source-music"
+    if ! mountpoint -q "$VAR_DIR/source-music" 2>/dev/null; then
+      mount --bind "$CUSTOM_SRC" "$VAR_DIR/source-music" 2>>"$LOG" && \
+        echo "已自动挂载自定义源目录：$CUSTOM_SRC -> $VAR_DIR/source-music" >> "$LOG" || \
+        echo "警告：自动挂载自定义源目录失败：$CUSTOM_SRC" >> "$LOG"
+      # 写入 fstab 保证重启后自动挂载
+      grep -q "$VAR_DIR/source-music" /etc/fstab 2>/dev/null || \
+        echo "$CUSTOM_SRC $VAR_DIR/source-music none bind 0 0" >> /etc/fstab 2>>"$LOG" || true
+    fi
+  fi
+fi
 
 # 安装说明（飞牛安装界面会展示此日志）。
 {
   echo "家庭KTV（含网盘）安装完成，飞牛正在后台拉取镜像并启动容器，约 2-5 分钟后可用。"
   echo ""
-  echo "手机点歌：http://<飞牛IP>:8080/m"
-  echo "管理后台：http://<飞牛IP>:8080/m/admin"
-  echo "alist 网盘管理：http://<飞牛IP>:5244（账号 admin）"
+  echo "手机点歌：http://<飞牛IP>:${KTV_PORT}/m"
+  echo "管理后台：http://<飞牛IP>:${KTV_PORT}/m/admin"
+  echo "alist 网盘管理：http://<飞牛IP>:${ALIST_PORT}（账号 admin）"
   echo "alist 管理员密码：${ALIST_DEFAULT_PW}"
   echo "  （首次登录后请在 alist 网页右下角头像 -> 修改密码）"
   echo ""
