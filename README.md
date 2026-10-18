@@ -240,11 +240,28 @@ cp .env.example .env   # 填入 KTV_ALIST_PASSWORD
 docker compose -f docker-compose.nas.yml -f docker-compose.cloud.yml up -d --build --wait
 ```
 
-## 飞牛 fpk 安装包
+## 飞牛 fpk 安装包（一键安装，推荐）
 
-`packaging/fnos/` 是飞牛 OS 应用包源码。去仓库的 **Actions** 页面运行
-**Build fpk** 工作流，即可生成 `ktv-home-cloud-<版本>-fnOS-x86.fpk`
-（含全部 4 个 Docker 镜像，安装时无需下载），下载后在飞牛应用中心手动安装。
+`packaging/fnos/` 是飞牛 OS 应用包源码。安装包体积很小（几十 KB），
+安装时自动从镜像仓库拉取 4 个 Docker 镜像（KTV 服务走 `ghcr.io`，
+数据库/alist/rclone 走国内镜像站），约需 800MB 磁盘空间。
+
+**获取安装包**（二选一）：
+
+- 去本仓库 **Releases** 页面下载 `ktv-home-cloud-<版本>-fnOS-x86.fpk`（推荐，有正式版本）。
+- 或去 **Actions** 页面运行 **Build fpk** 工作流，在 Artifacts 里下载。
+
+**安装步骤**：
+
+1. 飞牛后台 → 应用中心 → 手动安装 → 选择 `.fpk` 文件。
+2. 等待安装完成（拉取镜像需要几分钟）。
+3. 浏览器打开 `http://<飞牛IP>:8080/m`（手机点歌）、`http://<飞牛IP>:8080/m/admin`（管理后台）。
+4. alist 网盘管理：`http://<飞牛IP>:5244`，账号 `admin`，默认密码 `KtvAlist2026ChangeMe`
+   （首次登录后请修改）。
+5. 在 alist 网页中添加百度网盘 / OneDrive / 115，再到 KTV 管理后台点「扫描源路径」，
+   网盘歌曲会自动复制入库（只读，不会删除网盘文件）。
+
+> 仅适用于可信局域网，请勿把 8080/5244 端口暴露到公网。
 
 ## 媒体与歌词
 
