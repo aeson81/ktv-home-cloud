@@ -7,19 +7,36 @@
 
 ```
 百度网盘 ┐
-OneDrive  ├─→ alist（Docker）→ WebDAV /dav ─→ rclone 挂载 ─→ /cloud-music ─→ KTV 后端扫描
+OneDrive  ├─→ alist（Docker）→ WebDAV /dav ─→ rclone（KTV 容器内置）→ /cloud-music ─→ KTV 后端扫描
 115      ┘                                              （只读源：复制入库）
 ```
 
 - `alist` 容器把三个网盘聚合成统一的 WebDAV 服务（`http://alist:5244/dav`）。
-- `cloud-mount` 容器用 rclone + FUSE 把 WebDAV 挂载到 `./cloud-music`，KTV 容器以
-  `/cloud-music` 只读源的方式消费它。
+- KTV 容器启动时，内置的 rclone 把 WebDAV 挂载为 `/cloud-music`
+  （在容器内部完成，不依赖跨容器的挂载传播）。
+- rclone 使用独立的 alist 只读账号（启动时自动创建），与 admin 密码解耦——
+  你在 alist 网页端修改 admin 密码不会影响挂载。
 - 后端行为（已打补丁，与本地源不同）：
   - 扫描时会同时扫描本地 `source-music` 和网盘 `/cloud-music`；
   - 网盘里的兼容文件**复制**进曲库（本地源是移动），网盘源文件**永远不会被移动、
     删除或清理**——「删除源文件」「自动清理」都会自动跳过网盘文件；
   - 需要转码的网盘文件照常转码，输出写到本地 `/music` 曲库；
   - 网盘挂载暂时不可用时，扫描会跳过网盘源并继续扫描本地源，不会报错中断。
+
+### 混合挂载（进阶）
+
+`/cloud-music` 支持子目录混合来源：集成的 alist 自动挂载网盘的同时，
+你也可以把宿主机上自己挂载的网盘目录 bind 进来（参考
+[jiayuektv-go](https://github.com/chuanwen168/jiayuektv-go) 的 `/mv-net/` 思路）：
+
+```yaml
+# 在 compose 的 ktv 服务 volumes 下加一行：
+- type: bind
+  source: /你的/宿主机/网盘目录
+  target: /cloud-music/mydrive
+```
+
+后端递归扫描 `/cloud-music` 下所有子目录，两种来源的歌都会入库。
 
 ## 部署步骤
 
@@ -62,8 +79,8 @@ curl http://127.0.0.1:8080/api/health
    docker logs ktv-alist 2>&1 | grep -i password
    ```
 
-   登录后在「管理 → 用户」里把 admin 密码改成 `.env` 里写的那一个，
-   保持两者一致（`cloud-mount` 靠这个密码连接 alist 的 WebDAV）。
+   登录后在「管理 → 用户」里可以修改 admin 密码（rclone 使用独立的
+   只读账号，不受 admin 密码变更影响）。
 
 2. 进入「管理 → 存储 → 添加」，逐个添加：
    - **百度网盘**：驱动选「百度网盘」，按页面提示填写刷新令牌
@@ -76,10 +93,10 @@ curl http://127.0.0.1:8080/api/health
    所有 Cookie / Token 都只填在你自己打开的 alist 网页里，不要发给任何人。
 
 3. 添加完成后回到 alist 首页，能看到三个目录即表示成功。
-   `cloud-mount` 会自动把它们挂载到 `./cloud-music`，可用以下命令验证：
+   KTV 容器启动时会自动把它们挂载到 `/cloud-music`，可用以下命令验证：
 
    ```sh
-   ls ./cloud-music
+   docker exec ktv-app ls /cloud-music
    ```
 
 ### 4. 在 KTV 后台扫描入库
@@ -105,13 +122,11 @@ curl http://127.0.0.1:8080/api/health
 不能直接播。播放走的是本地 `/music` 曲库；网盘只是「素材源」，
 歌曲必须先扫描入库（复制/转码）到本地曲库后才能点播。
 
-**alist 升级 / 忘记密码？**
+**alist 忘记密码？**
 ```sh
-docker exec -it ktv-alist ./alist admin set 新密码
+docker exec ktv-alist /opt/alist/alist admin set 新密码
 ```
-改完后同步更新 `.env` 里的 `KTV_ALIST_PASSWORD`，再
-`docker compose -f docker-compose.nas.yml -f docker-compose.cloud.yml up -d`
-重建 `cloud-mount` 即可。
+rclone 使用独立账号，改 admin 密码不影响网盘挂载。
 
 **只想用其中一两个网盘？**
 在 alist 里只添加想用的存储即可；没添加的目录不会出现在
