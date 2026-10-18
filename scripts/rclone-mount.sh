@@ -23,8 +23,12 @@ EOF
 chmod 600 "$RCLONE_CONF"
 
 echo "正在挂载网盘 WebDAV：$ALIST_URL -> $MOUNT_POINT"
+# 容器重启时，上次的 FUSE 挂载可能残留（僵尸挂载），先清理再挂载，
+# 否则 rclone 会报 "directory already mounted" 并退出导致反复重启。
+fusermount -uz "$MOUNT_POINT" 2>/dev/null || umount -l "$MOUNT_POINT" 2>/dev/null || true
 exec rclone mount alist: "$MOUNT_POINT" \
   --allow-other \
+  --allow-non-empty \
   --vfs-cache-mode writes \
   --dir-cache-time 5m \
   --poll-interval 1m \
