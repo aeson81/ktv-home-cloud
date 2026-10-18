@@ -108,6 +108,7 @@ jobs:
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#release-v}"
           cd android-tv
+          chmod +x gradlew
           ./gradlew assembleDebug -PtvVersionName=${VERSION} --no-daemon
           find app/build/outputs/apk -name "*.apk" | head -10
 
