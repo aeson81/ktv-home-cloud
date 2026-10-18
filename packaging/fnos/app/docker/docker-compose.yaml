@@ -27,9 +27,9 @@ services:
     stop_grace_period: 1m
 
   ktv:
-    # 国内经 houlang 镜像站拉取（比直连 ghcr.io 快）。
-    # 如需切换回 GHCR，改为 ghcr.io/aeson81/ktv-home-cloud:latest。
-    image: mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
+    # 经 houlang 镜像站加速拉取 GHCR 镜像（国内快，免登录）。
+    # 格式：mirror.houlang.cloud/ghcr/<原 GHCR 路径>
+    image: mirror.houlang.cloud/ghcr/aeson81/ktv-home-cloud:latest
     container_name: ktv-app
     devices:
       # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
