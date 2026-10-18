@@ -1,0 +1,95 @@
+# Standalone NAS deployment. This file does not load or depend on .env.
+# NAS 独立部署文件，不读取也不依赖 .env。
+# Before deployment, change x-db-password below. It is referenced by both
+# PostgreSQL and Home KTV, so the two services always use the same password.
+# 部署前请修改下方 x-db-password；数据库和应用会同时引用该密码，避免配置不一致。
+name: home-ktv
+
+x-db-name: &db-name ktv
+x-db-user: &db-user ktv
+x-db-password: &db-password change-me-before-deploy
+x-timezone: &timezone Asia/Shanghai
+
+services:
+  db:
+    image: docker.m.daocloud.io/library/postgres:16-alpine
+    container_name: ktv-db
+    environment:
+      POSTGRES_DB: *db-name
+      POSTGRES_USER: *db-user
+      POSTGRES_PASSWORD: *db-password
+      TZ: *timezone
+    volumes:
+      - type: bind
+        source: ./postgres
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ktv -d ktv"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 1m
+
+  ktv:
+    image: ghcr.io/zhayinggang/ktv-home:latest
+    container_name: ktv-app
+    devices:
+      # Intel GPU passthrough for VAAPI hardware acceleration.
+      # Intel 核显透传，用于 VAAPI 硬件加速。
+      - /dev/dri:/dev/dri
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ktv
+      SPRING_DATASOURCE_USERNAME: *db-user
+      SPRING_DATASOURCE_PASSWORD: *db-password
+      KTV_SOURCE_LIBRARY_PATH: /source-music
+      KTV_LIBRARY_PATH: /music
+      KTV_DATA_PATH: /data
+      KTV_DISCOVERY_ENABLED: "true"
+      KTV_DISCOVERY_UDP_PORT: 18888
+      KTV_DISCOVERY_NAME: 家庭KTV
+      KTV_AI_ENABLED: "false"
+      KTV_AI_BASE_URL: https://api.deepseek.com
+      KTV_AI_API_KEY: ""
+      KTV_AI_MODEL: deepseek-v4-flash
+      KTV_AI_AUTO_APPLY_CONFIDENCE: "0.90"
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -Xmx512m
+      TZ: *timezone
+    ports:
+      # Web/API/WebSocket/media / 网页、API、WebSocket 与媒体流
+      - "8080:8080/tcp"
+      # The TV client scans this exact UDP port / 电视端只扫描此 UDP 端口
+      - "18888:18888/udp"
+    volumes:
+      - type: bind
+        # Relative to the directory containing this Compose project.
+        # 相对于此 Compose 项目所在目录。
+        source: ./source-music
+        target: /source-music
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./music
+        target: /music
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./data
+        target: /data
+        bind:
+          create_host_path: true
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 30s

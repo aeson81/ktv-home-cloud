@@ -1,0 +1,23 @@
+#!/bin/bash
+# 飞牛应用生命周期入口。Docker 项目由系统通过 config/resource 中的
+# docker-project 声明管理，start/stop 仅需返回成功；status 检查主容器状态。
+
+is_running() {
+  docker inspect "ktv-app" 2>/dev/null | grep -q '"Status": "running"'
+}
+
+case "$1" in
+  start|stop)
+    exit 0
+    ;;
+  status)
+    if is_running; then
+      exit 0
+    fi
+    exit 3
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    exit 1
+    ;;
+esac

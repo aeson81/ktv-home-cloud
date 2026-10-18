@@ -1,0 +1,26 @@
+# Local development: starts PostgreSQL only; run the application from the IDE or Maven.
+# 本地开发用：仅启动 PostgreSQL，应用在 IDE / Maven 中运行。
+# Usage / 用法：docker compose -f docker-compose.dev.yml up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ktv-db-dev
+    volumes:
+      - type: bind
+        source: ./postgres-dev
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: true
+    environment:
+      - POSTGRES_USER=ktv
+      - POSTGRES_PASSWORD=ktv
+      - POSTGRES_DB=ktv
+    ports:
+      # Development-only PostgreSQL TCP port. This is not the TV discovery port.
+      # 仅用于开发的 PostgreSQL TCP 端口；不是电视端发现端口。
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ktv -d ktv"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

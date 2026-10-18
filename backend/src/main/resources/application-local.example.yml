@@ -1,0 +1,13 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+
+app:
+  ai:
+    enabled: true
+    base-url: https://api.deepseek.com/v1
+    api-key: 请替换为兼容服务的 API Key
+    bulk-model: deepseek-chat
+    reasoning-model: ''
+    auto-apply-confidence: 0.90

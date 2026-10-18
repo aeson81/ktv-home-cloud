@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff8a2b"/>
+      <stop offset="0.45" stop-color="#ff315f"/>
+      <stop offset="1" stop-color="#17133b"/>
+    </linearGradient>
+    <linearGradient id="pink" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#ff4d9d"/>
+      <stop offset="1" stop-color="#ff7a2f"/>
+    </linearGradient>
+    <linearGradient id="note" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffd36b"/>
+      <stop offset="1" stop-color="#ff4b8b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="150" fill="url(#bg)"/>
+
+  <!-- house -->
+  <path d="M180 420 L512 160 L844 420" fill="none" stroke="white" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M245 410 V720 H780 V410" fill="none" stroke="white" stroke-width="34" stroke-linejoin="round"/>
+
+  <!-- TV -->
+  <rect x="330" y="430" width="420" height="250" rx="35" fill="none" stroke="white" stroke-width="30"/>
+
+  <!-- microphone -->
+  <ellipse cx="350" cy="505" rx="95" ry="75" fill="white"/>
+  <rect x="295" y="560" width="55" height="210" rx="25" fill="white" transform="rotate(25 295 560)"/>
+
+  <!-- music note -->
+  <path d="M570 500 V620 Q570 680 520 680 Q470 680 470 635 Q470 590 520 590 Q545 590 570 600 V420 L690 390 V540"
+        fill="url(#note)"/>
+
+  <!-- equalizer -->
+  <g fill="url(#note)">
+    <rect x="850" y="450" width="25" height="110" rx="12"/>
+    <rect x="895" y="400" width="25" height="210" rx="12"/>
+    <rect x="940" y="470" width="25" height="130" rx="12"/>
+  </g>
+
+  <!-- bottom curve -->
+  <path d="M120 780 Q512 690 900 780" fill="none" stroke="url(#pink)" stroke-width="28"/>
+
+  <!-- text -->
+  <text x="512" y="900" text-anchor="middle" font-family="Arial, sans-serif" font-size="95" font-weight="700" fill="white">
+    Home <tspan fill="#ff5c9a">K</tspan><tspan fill="#ff8a35">TV</tspan>
+  </text>
+</svg>
