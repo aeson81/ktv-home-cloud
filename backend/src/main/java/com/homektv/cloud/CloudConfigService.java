@@ -115,6 +115,12 @@ public class CloudConfigService {
     /** 校验并规范化本地路径，返回 null 表示不合法。 */
     private String normalizeLocalPath(String path) {
         try {
+            // 兼容宿主机路径：/vol2/1000/... 自动转为容器内 /host-data/...
+            if (path.startsWith("/vol2/1000/")) {
+                path = "/host-data/" + path.substring("/vol2/1000/".length());
+            } else if (path.equals("/vol2/1000")) {
+                path = "/host-data";
+            }
             Path p = Paths.get(path).toAbsolutePath().normalize();
             String s = p.toString();
             for (String prefix : ALLOWED_PREFIXES) {

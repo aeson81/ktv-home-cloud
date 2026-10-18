@@ -110,7 +110,10 @@ function formatBytes(bytes) {
 .admin-shell { --admin-blue:#a78bfa; --admin-gold:#ffc64b; --admin-border:rgba(255,255,255,.08); --admin-muted:#aeb7c5; display:flex; min-height:100vh; background:#101319; color:#f7f8fb; }
 .side { width:220px; flex:none; background:#181d25; border-right:1px solid var(--admin-border); }
 .brand { height:76px; padding:18px 20px; border-bottom:1px solid var(--admin-border); display:flex; flex-direction:column; justify-content:center; }
-.brand strong { font-size:18px; line-height:1; color:var(--admin-gold); }.brand span { margin-top:7px; color:#747f90; font-size:11px; }
+.brand strong { font-size:18px; line-height:1; color:var(--admin-gold);
+  font-family: ui-monospace, SFMono-Regular, monospace; letter-spacing: 2px; }
+.brand span { margin-top:7px; color:#747f90; font-size:10px;
+  font-family: ui-monospace, monospace; letter-spacing: 1px; text-transform: uppercase; }
 nav { padding:16px 12px; }.nav-label { padding:0 10px 8px; font-size:11px; color:#747f90; }
 .mi { display:flex; align-items:center; gap:10px; min-height:42px; padding:0 12px; margin-bottom:4px; border-radius:6px; color:#aeb7c5; font-size:13px; border:1px solid transparent; }
 .mi span { width:18px; text-align:center; font-size:16px; color:#747f90; }.mi:hover { background:#202630; color:#f7f8fb; }
