@@ -37,15 +37,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Aliyun ACR
+        uses: docker/login-action@v3
+        continue-on-error: true
+        with:
+          registry: ${{ secrets.ALIYUN_REGISTRY }}
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          password: ${{ secrets.ALIYUN_PASSWORD }}
+
       - name: Build and push KTV image
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#release-v}"
+          ALIYUN="${{ secrets.ALIYUN_REGISTRY }}"
+          # 构建标签：GHCR 必推，阿里云可选（secrets 未配置时跳过）
+          TAGS="-t ghcr.io/aeson81/ktv-home-cloud:latest -t ghcr.io/aeson81/ktv-home-cloud:${VERSION}"
+          if [ -n "$ALIYUN" ]; then
+            TAGS="$TAGS -t $ALIYUN/aeson81/ktv-home-cloud:latest -t $ALIYUN/aeson81/ktv-home-cloud:${VERSION}"
+          fi
           docker buildx build --platform linux/amd64,linux/arm64 \
             --build-arg BASE_REGISTRY=docker.m.daocloud.io \
             -f backend/Dockerfile \
-            -t ghcr.io/aeson81/ktv-home-cloud:latest \
-            -t ghcr.io/aeson81/ktv-home-cloud:${VERSION} \
+            $TAGS \
             --push .
 
       - name: Prepare fnpack (vendored, checksum verified)
