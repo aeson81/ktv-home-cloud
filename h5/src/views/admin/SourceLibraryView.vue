@@ -9,6 +9,45 @@
       </div>
     </header>
 
+    <!-- 网盘配置 / Cloud drive config -->
+    <section class="cloud-config-panel">
+      <div class="cloud-config-head" @click="cloudConfigOpen = !cloudConfigOpen">
+        <strong>网盘配置</strong>
+        <span class="cloud-config-status">
+          <span v-if="cloudConfig.cookie115Set" class="badge ok">115 已配置</span>
+          <span v-else class="badge">115 未配置</span>
+          <span v-if="cloudConfig.onedriveTokenSet" class="badge ok">OneDrive 已配置</span>
+          <span v-else class="badge">OneDrive 未配置</span>
+        </span>
+        <span class="toggle-icon">{{ cloudConfigOpen ? '▲' : '▼' }}</span>
+      </div>
+      <div v-if="cloudConfigOpen" class="cloud-config-body">
+        <div class="cloud-field">
+          <label><strong>115 Cookie</strong><small>格式：UID=xxx; CID=xxx; SEID=xxx（浏览器登录 115 后 F12 复制）</small></label>
+          <textarea v-model="cloudForm.cookie115" rows="2" placeholder="UID=...; CID=...; SEID=...（留空则清除）"></textarea>
+          <span v-if="cloudConfig.cookie115Masked" class="hint">当前：{{ cloudConfig.cookie115Masked }}</span>
+        </div>
+        <div class="cloud-field">
+          <label><strong>OneDrive 区域</strong></label>
+          <select v-model="cloudForm.onedriveRegion">
+            <option value="global">国际版 (Global)</option>
+            <option value="cn">中国版 (世纪互联)</option>
+            <option value="de">德国版</option>
+            <option value="us">美国政府版</option>
+          </select>
+        </div>
+        <div class="cloud-field">
+          <label><strong>OneDrive Token</strong><small>在电脑上跑 rclone config 配好后，从 rclone.conf 复制 token JSON</small></label>
+          <textarea v-model="cloudForm.onedriveToken" rows="3" placeholder='{"access_token":"...","token_type":"Bearer",...}（留空则清除）'></textarea>
+        </div>
+        <div class="cloud-actions">
+          <button class="primary" :disabled="cloudSaving" @click="saveCloudConfig">{{ cloudSaving ? '保存中…' : '保存并重新挂载' }}</button>
+          <button class="secondary" :disabled="cloudSaving" @click="remountCloud">仅重新挂载</button>
+          <span v-if="cloudMsg" class="cloud-msg">{{ cloudMsg }}</span>
+        </div>
+      </div>
+    </section>
+
     <!-- 筛选面板 / Filter panel -->
     <section class="filter-panel">
       <label><span>关键词</span><input v-model.trim="filters.keyword" placeholder="歌名、歌手或文件名" @keyup.enter="search" /></label>
@@ -75,6 +114,51 @@ import { alertDialog, confirmDialog } from '../../composables/useDialog'
 // 列表数据、分页、选中项 / List data, pagination, selected items
 const rows = ref([]), total = ref(0), page = ref(0), totalPages = ref(1), selected = ref([])
 const cleaning = ref(false)
+// 网盘配置 / Cloud drive config
+const cloudConfigOpen = ref(false)
+const cloudConfig = ref({ cookie115Set: false, cookie115Masked: '', onedriveTokenSet: false, onedriveRegion: 'global' })
+const cloudForm = reactive({ cookie115: '', onedriveRegion: 'global', onedriveToken: '' })
+const cloudSaving = ref(false)
+const cloudMsg = ref('')
+
+async function loadCloudConfig() {
+  try {
+    const r = await api.adminCloudConfig()
+    cloudConfig.value = r
+    cloudForm.onedriveRegion = r.onedriveRegion || 'global'
+  } catch (e) { /* ignore */ }
+}
+async function saveCloudConfig() {
+  cloudSaving.value = true
+  cloudMsg.value = ''
+  try {
+    const r = await api.adminUpdateCloudConfig({
+      cookie115: cloudForm.cookie115,
+      onedriveRegion: cloudForm.onedriveRegion,
+      onedriveToken: cloudForm.onedriveToken,
+    })
+    cloudMsg.value = '已保存，挂载结果：' + (r.remount || 'ok')
+    cloudForm.cookie115 = ''
+    cloudForm.onedriveToken = ''
+    await loadCloudConfig()
+  } catch (e) {
+    cloudMsg.value = '保存失败：' + (e.message || e)
+  } finally {
+    cloudSaving.value = false
+  }
+}
+async function remountCloud() {
+  cloudSaving.value = true
+  cloudMsg.value = ''
+  try {
+    const r = await api.adminRemountCloud()
+    cloudMsg.value = '挂载结果：' + (r.result || 'ok')
+  } catch (e) {
+    cloudMsg.value = '挂载失败：' + (e.message || e)
+  } finally {
+    cloudSaving.value = false
+  }
+}
 // 默认展示全部源素材；格式筛选目前没有单独的界面控件。
 const filters = reactive({ keyword: '', status: '', formatAnalysis: '' })
 const progress = ref({ running:false, total:0, completed:0 })
@@ -268,7 +352,7 @@ function statusClass(v){return{AUTO_COPIED:'green',TRANSCODED:'green',PENDING_TR
  * 页面挂载：加载列表数据并初始化进度轮询。
  * On mount: load list data and initialize progress polling.
  */
-onMounted(async()=>{await Promise.all([load(),loadProgress()]);if(progress.value.running)timer=setInterval(loadProgress,1500)})
+onMounted(async()=>{await Promise.all([load(),loadProgress(),loadCloudConfig()]);if(progress.value.running)timer=setInterval(loadProgress,1500)})
 
 /**
  * 页面卸载：清除进度轮询定时器。
@@ -280,4 +364,5 @@ onUnmounted(()=>{if(timer)clearInterval(timer)})
 <style scoped>
 .page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}.page-head h1{font-size:22px}.page-head p{color:#64748b;font-size:13px;margin-top:6px}.primary,.secondary,.danger{height:34px;padding:0 14px;border-radius:6px;font-size:13px}.primary{background:#2563eb;color:#fff}.secondary{background:#fff;border:1px solid #cbd5e1;color:#334155}.danger{background:#fff;border:1px solid #fecaca;color:#b91c1c}.primary:disabled,.secondary:disabled,.danger:disabled{opacity:.45;cursor:not-allowed}.filter-panel{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:14px}.filter-panel label{display:flex;flex:0 0 180px;flex-direction:column;gap:5px;color:#475569;font-size:12px}.filter-panel label:first-child{flex-basis:280px}.filter-panel input,.filter-panel select{width:100%;height:36px;border:1px solid #cbd5e1;border-radius:6px;padding:0 10px;background:#fff;color:#172033;font:inherit;font-size:13px;line-height:normal;box-shadow:0 1px 2px rgba(15,23,42,.03)}.filter-panel select{appearance:none;padding-right:34px;cursor:pointer}.select-control{position:relative;display:block}.select-control svg{position:absolute;right:10px;top:50%;color:#64748b;pointer-events:none;transform:translateY(-50%)}.filter-panel input:focus,.filter-panel select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(37,99,235,.1);outline:0}.filter-actions{display:flex;align-items:flex-end;gap:8px}.filter-actions button{height:36px}.progress-panel,.table-panel{background:#fff;border:1px solid #e2e8f0;border-radius:8px}.progress-panel{padding:16px;margin-bottom:14px;display:grid;grid-template-columns:1fr auto;gap:8px}.progress-copy{display:flex;flex-direction:column;gap:4px}.progress-copy span,.current{font-size:12px;color:#64748b}.progress-value{color:#2563eb;font-weight:700}.track{grid-column:1/-1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden}.track i{display:block;height:100%;background:#2563eb}.current{grid-column:1/-1}.toolbar,.pager{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;color:#64748b;font-size:12px}.toolbar{border-bottom:1px solid #e2e8f0}.pager{border-top:1px solid #e2e8f0}.pager div{display:flex;gap:8px}.table-scroll{position:relative;overflow-x:auto}table{width:100%;border-collapse:separate;border-spacing:0}td,th{padding:12px 14px;font-size:12px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}td strong{display:block;font-size:13px;color:#172033;max-width:260px;overflow:hidden;text-overflow:ellipsis}td small{display:block;color:#64748b;font-size:11px;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis}.md5 small{font-family:ui-monospace,SFMono-Regular,monospace;font-size:11px}.action-cell{position:sticky;right:0;z-index:2;width:228px;min-width:228px;background:#fff;border-left:1px solid #e2e8f0;box-shadow:-10px 0 14px -14px rgba(15,23,42,.55)}thead .action-cell{z-index:3}.link{height:30px;border:1px solid #dbe3ee;background:#fff;color:#2563eb;font-size:11px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:0 8px;border-radius:6px}.link:hover:not(:disabled){border-color:#bfdbfe;background:#eff6ff}.danger-text{color:#b91c1c}.danger-text:hover:not(:disabled){border-color:#fecaca;background:#fef2f2}.priority-text{color:#b45309}.priority-text:hover:not(:disabled){border-color:#fde68a;background:#fffbeb}.status{display:inline-block;padding:2px 8px;font-size:11px;border-radius:4px;font-weight:600}.status.blue{background:#dbeafe;color:#1d4ed8}.status.green{background:#dcfce7;color:#15803d}.status.amber{background:#fef3c7;color:#a16207}.status.red{background:#fee2e2;color:#b91c1c}.status.neutral{background:#f1f5f9;color:#475569}.empty{text-align:center;padding:48px;color:#94a3b8}.header-actions,.batch-actions,.row-actions,.action-button{display:flex;align-items:center}.header-actions,.batch-actions{gap:8px}.action-button{justify-content:center;gap:5px;white-space:nowrap}.row-actions{gap:6px}.priority-text{color:#b45309}@media(max-width:700px){.page-head{align-items:flex-start;gap:12px}.header-actions,.batch-actions{flex-wrap:wrap;justify-content:flex-end}.toolbar{align-items:flex-start;gap:10px}.action-cell{width:220px;min-width:220px}.row-actions{gap:4px}.link{padding-inline:6px}}
 .cleanup-button{background:#dc2626;border-color:#dc2626;color:#fff;font-weight:700;box-shadow:0 3px 10px rgba(185,28,28,.28)}.cleanup-button:hover:not(:disabled){background:#b91c1c;border-color:#b91c1c;box-shadow:0 4px 14px rgba(185,28,28,.36)}.cleanup-button:focus-visible{outline:3px solid rgba(248,113,113,.35);outline-offset:2px}
+.cloud-config-panel{background:#fff;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:14px;overflow:hidden}.cloud-config-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}.cloud-config-head strong{font-size:14px}.cloud-config-status{display:flex;gap:6px}.badge{font-size:11px;padding:2px 8px;border-radius:4px;background:#f1f5f9;color:#64748b}.badge.ok{background:#dcfce7;color:#15803d}.toggle-icon{margin-left:auto;color:#94a3b8}.cloud-config-body{padding:0 16px 16px;border-top:1px solid #f1f5f9;display:flex;flex-direction:column;gap:12px}.cloud-field label{display:flex;flex-direction:column;gap:4px;font-size:13px;margin-bottom:6px}.cloud-field small{color:#94a3b8;font-size:11px;font-weight:400}.cloud-field textarea,.cloud-field select{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit}.cloud-field textarea:focus,.cloud-field select:focus{border-color:#60a5fa;outline:0}.cloud-field .hint{font-size:11px;color:#64748b}.cloud-actions{display:flex;align-items:center;gap:10px}.cloud-msg{font-size:12px;color:#475569}
 </style>

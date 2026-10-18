@@ -105,6 +105,9 @@ export const api = {
   adminPrioritizeSourceTranscode: (id) => request('/admin/source-library/transcode/priority', { method: 'POST', body: JSON.stringify({ id }) }),
   adminSourceTranscodeProgress: () => request('/admin/source-library/progress'),
   adminCleanupImportedSources: () => request('/admin/source-library/cleanup', { method: 'POST' }),
+  adminCloudConfig: () => request('/admin/cloud/config'),
+  adminUpdateCloudConfig: (data) => request('/admin/cloud/config', { method: 'PUT', body: JSON.stringify(data) }),
+  adminRemountCloud: () => request('/admin/cloud/config/remount', { method: 'POST' }),
   adminDeleteSources: (ids = [], filters = {}) => request('/admin/source-library', {
     method: 'DELETE', body: JSON.stringify({ ids, ...filters })
   }),
