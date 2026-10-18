@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,21 +47,21 @@ jobs:
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build release APKs
+      - name: Build APKs
         working-directory: android-tv
         env:
           KTV_TV_VERSION_NAME: ${{ steps.ver.outputs.version }}
           KTV_TV_VERSION_CODE: ${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleDebug --no-daemon
 
       - name: Rename APKs
         run: |
           VER=${{ steps.ver.outputs.version }}
           mkdir -p dist/tv-apk
-          find android-tv/app/build/outputs/apk -name "*armeabi-v7a*release.apk" -exec cp {} dist/tv-apk/home-ktv-tv-${VER}-armeabi-v7a.apk \;
-          find android-tv/app/build/outputs/apk -name "*arm64-v8a*release.apk" -exec cp {} dist/tv-apk/home-ktv-tv-${VER}-arm64-v8a.apk \;
+          find android-tv/app/build/outputs/apk -name "*armeabi-v7a*debug.apk" -exec cp {} dist/tv-apk/home-ktv-tv-${VER}-armeabi-v7a.apk \;
+          find android-tv/app/build/outputs/apk -name "*arm64-v8a*debug.apk" -exec cp {} dist/tv-apk/home-ktv-tv-${VER}-arm64-v8a.apk \;
           ls -lh dist/tv-apk/
 
       - name: Upload APKs
@@ -68,3 +70,16 @@ jobs:
           name: tv-apk-${{ steps.ver.outputs.version }}
           path: dist/tv-apk/*.apk
           retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tv-v${{ steps.ver.outputs.version }}
+          name: TV APK v${{ steps.ver.outputs.version }}
+          body: |
+            Android TV 客户端 v${{ steps.ver.outputs.version }}
+            - `home-ktv-tv-${{ steps.ver.outputs.version }}-arm64-v8a.apk`：64 位设备（大多数新电视/盒子）
+            - `home-ktv-tv-${{ steps.ver.outputs.version }}-armeabi-v7a.apk`：32 位设备
+          files: dist/tv-apk/*.apk
+          draft: false
+          prerelease: false
