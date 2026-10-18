@@ -89,13 +89,17 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.ref_name }}"
+          # 每次运行都发布到 Release（tag 用版本号）
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${{ github.event.inputs.version || '1.0.0' }}"
+          fi
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || \
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "ktv-home-cloud $TAG" --generate-notes
           gh release upload "$TAG" \
             "${{ steps.rename.outputs.asset }}" \
             "${{ steps.rename.outputs.asset }}.sha256" \
