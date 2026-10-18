@@ -27,7 +27,10 @@ FROM --platform=$BUILDPLATFORM ${BASE_REGISTRY}/library/maven:3.9-eclipse-temuri
 WORKDIR /build
 COPY backend/pom.xml .
 COPY backend/src ./src
-COPY dist/tv-apk ./src/main/resources/static/tv-apk
+# TV APK 为可选功能：如需内置 APK，先运行 Build TV APK 工作流，
+# 将 APK 放入 dist/tv-apk/，再取消下面一行的注释重新构建。
+# COPY dist/tv-apk ./src/main/resources/static/tv-apk
+RUN mkdir -p ./src/main/resources/static/tv-apk
 COPY --from=web-build /workspace/backend/src/main/resources/static/m ./src/main/resources/static/m
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B clean package -DskipTests
