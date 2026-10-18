@@ -58,12 +58,11 @@ jobs:
           docker save -o packaging/fnos/app/images/rclone.tar rclone/rclone:latest
           ls -lh packaging/fnos/app/images/
 
-      - name: Download fnpack (pinned + checksum verified)
+      - name: Prepare fnpack (vendored, checksum verified)
         run: |
-          curl -sL -o fnpack \
-            https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
-          echo "54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93  fnpack" | sha256sum -c -
-          chmod +x fnpack
+          echo "54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93  tools/fnpack-linux-amd64" | sha256sum -c -
+          chmod +x tools/fnpack-linux-amd64
+          cp tools/fnpack-linux-amd64 fnpack
           ./fnpack --version
 
       - name: Build fpk
