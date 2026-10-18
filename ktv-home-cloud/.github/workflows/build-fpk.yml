@@ -1,0 +1,103 @@
+name: Build fpk
+
+# 在仓库的 Actions 页面点 "Run workflow" 即可生成 .fpk 安装包，
+# 构建产物在 workflow 运行页面的 Artifacts 中下载。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "fpk 版本号（写入 manifest）"
+        default: "1.0.0"
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          fi
+          VERSION="${VERSION#v}"
+          [ -n "$VERSION" ] || VERSION="1.0.0"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          sed -i "s/^version=.*/version=$VERSION/" packaging/fnos/manifest
+          grep '^version=' packaging/fnos/manifest
+
+      - name: Build KTV image (with cloud-drive patch)
+        run: |
+          docker build --build-arg BASE_REGISTRY=docker.io \
+            -f backend/Dockerfile -t ktv-home-cloud:latest .
+
+      - name: Pull dependency images
+        run: |
+          docker pull postgres:16-alpine
+          docker pull xhofe/alist:latest
+          docker pull rclone/rclone:latest
+
+      - name: Save images into the package
+        run: |
+          mkdir -p packaging/fnos/app/images
+          docker save -o packaging/fnos/app/images/ktv-home-cloud.tar ktv-home-cloud:latest
+          docker save -o packaging/fnos/app/images/postgres.tar postgres:16-alpine
+          docker save -o packaging/fnos/app/images/alist.tar xhofe/alist:latest
+          docker save -o packaging/fnos/app/images/rclone.tar rclone/rclone:latest
+          ls -lh packaging/fnos/app/images/
+
+      - name: Download fnpack (pinned + checksum verified)
+        run: |
+          curl -sL -o fnpack \
+            https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64
+          echo "54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93  fnpack" | sha256sum -c -
+          chmod +x fnpack
+          ./fnpack --version
+
+      - name: Build fpk
+        run: |
+          ./fnpack build --directory packaging/fnos
+          ls -lh ./*.fpk
+
+      - name: Rename with version
+        id: rename
+        run: |
+          ASSET="ktv-home-cloud-${{ steps.version.outputs.version }}-fnOS-x86.fpk"
+          mv ktv-home-cloud.fpk "$ASSET"
+          sha256sum "$ASSET" > "$ASSET.sha256"
+          ls -lh "$ASSET" "$ASSET.sha256"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktv-home-cloud-fpk
+          path: |
+            ${{ steps.rename.outputs.asset }}
+            ${{ steps.rename.outputs.asset }}.sha256
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          gh release upload "$TAG" \
+            "${{ steps.rename.outputs.asset }}" \
+            "${{ steps.rename.outputs.asset }}.sha256" \
+            --repo "$GITHUB_REPOSITORY" --clobber

@@ -1,0 +1,146 @@
+name: ktv-home-cloud
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ktv-db
+    environment:
+      POSTGRES_DB: ktv
+      POSTGRES_USER: ktv
+      POSTGRES_PASSWORD: ${KTV_DB_PASSWORD:?缺少 KTV_DB_PASSWORD，请重新安装本应用}
+      TZ: Asia/Shanghai
+    volumes:
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/postgres
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ktv -d ktv"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    stop_grace_period: 1m
+
+  ktv:
+    image: ktv-home-cloud:latest
+    container_name: ktv-app
+    devices:
+      # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
+      - /dev/dri:/dev/dri
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ktv
+      SPRING_DATASOURCE_USERNAME: ktv
+      SPRING_DATASOURCE_PASSWORD: ${KTV_DB_PASSWORD:?缺少 KTV_DB_PASSWORD，请重新安装本应用}
+      KTV_SOURCE_LIBRARY_PATH: /source-music
+      KTV_CLOUD_LIBRARY_PATH: /cloud-music
+      KTV_LIBRARY_PATH: /music
+      KTV_DATA_PATH: /data
+      KTV_DISCOVERY_ENABLED: "true"
+      KTV_DISCOVERY_UDP_PORT: 18888
+      KTV_DISCOVERY_NAME: 家庭KTV
+      KTV_AI_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -Xmx512m
+      TZ: Asia/Shanghai
+    ports:
+      # Web/API/WebSocket/媒体流
+      - "8080:8080/tcp"
+      # Android TV 局域网自动发现（TV 只扫描此 UDP 端口）
+      - "18888:18888/udp"
+    volumes:
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/source-music
+        target: /source-music
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/music
+        target: /music
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/data
+        target: /data
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/cloud-music
+        target: /cloud-music
+        bind:
+          create_host_path: true
+          propagation: rslave
+    depends_on:
+      db:
+        condition: service_healthy
+      cloud-mount:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 30s
+
+  # alist：聚合百度网盘 / OneDrive / 115，暴露 WebDAV。
+  # 网盘账号请在 http://<飞牛IP>:5244 网页端自行添加（账号 admin，密码见安装日志）。
+  alist:
+    image: xhofe/alist:latest
+    container_name: ktv-alist
+    ports:
+      - "5244:5244"
+    volumes:
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/alist
+        target: /opt/alist/data
+        bind:
+          create_host_path: true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5244/"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  # cloud-mount：把 alist 的 WebDAV 挂载为 KTV 的只读网盘源。
+  cloud-mount:
+    image: rclone/rclone:latest
+    container_name: ktv-cloud-mount
+    devices:
+      - /dev/fuse:/dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      RCLONE_CONFIG: /config/rclone/rclone.conf
+      KTV_ALIST_URL: http://alist:5244/dav
+      KTV_ALIST_PASSWORD: ${KTV_ALIST_PASSWORD:?缺少 KTV_ALIST_PASSWORD，请重新安装本应用}
+      TZ: Asia/Shanghai
+    volumes:
+      - type: bind
+        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/cloud-music
+        target: /mnt/cloud
+        bind:
+          create_host_path: true
+          propagation: rshared
+      - type: bind
+        source: ./scripts/rclone-mount.sh
+        target: /scripts/rclone-mount.sh
+        read_only: true
+    entrypoint: ["/bin/sh", "/scripts/rclone-mount.sh"]
+    depends_on:
+      alist:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "rclone lsd alist: --max-depth 1 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

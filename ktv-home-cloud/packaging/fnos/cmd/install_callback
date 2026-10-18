@@ -1,0 +1,77 @@
+#!/bin/bash
+# 安装后回调：载入内置 Docker 镜像 -> 生成密码 -> 启动项目 -> 设置 alist 管理员密码。
+set -e
+
+APP_ROOT="/var/apps/ktv-home-cloud"
+TARGET="${APP_ROOT}/target"
+DOCKER_DIR="${TARGET}/docker"
+VAR_DIR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
+export TRIM_PKGVAR="$VAR_DIR"
+COMPOSE="docker compose -f ${DOCKER_DIR}/docker-compose.yaml --project-name ktv-home-cloud"
+
+mkdir -p "$VAR_DIR"
+
+# 1. 载入安装包内置的 Docker 镜像（安装时无需联网下载）。
+LOADED=0
+for tar in "${TARGET}"/app/images/*.tar; do
+  [ -e "$tar" ] || continue
+  docker load -i "$tar"
+  LOADED=1
+done
+
+# 2. 生成密码并写入 docker/.env（同时备份一份到持久目录，升级时可恢复）。
+ENV_FILE="${DOCKER_DIR}/.env"
+ENV_BAK="${VAR_DIR}/docker.env.bak"
+if [ ! -f "$ENV_FILE" ]; then
+  DB_PW="$(openssl rand -hex 12)"
+  ALIST_PW="$(openssl rand -hex 12)"
+  {
+    echo "# 安装时自动生成，请勿手动编辑；升级时会自动恢复。"
+    echo "KTV_DB_PASSWORD=${DB_PW}"
+    echo "KTV_ALIST_PASSWORD=${ALIST_PW}"
+  } > "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  cp "$ENV_FILE" "$ENV_BAK"
+  chmod 600 "$ENV_BAK"
+fi
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
+
+# 3. 启动全部服务。
+$COMPOSE up -d
+
+# 4. 等待 alist 就绪，把它的 admin 密码设成 .env 中的值。
+for _ in $(seq 1 60); do
+  if docker exec ktv-alist wget -q -O /dev/null http://127.0.0.1:5244/ >/dev/null 2>&1; then
+    break
+  fi
+  sleep 2
+done
+docker exec ktv-alist ./alist admin set "$KTV_ALIST_PASSWORD" >/dev/null 2>&1 || \
+  echo "警告：alist 管理员密码设置失败，可稍后在容器内手动执行 ./alist admin set" >&2
+
+# 5. 镜像已载入，删除包内副本以释放空间。
+if [ "$LOADED" = "1" ]; then
+  rm -f "${TARGET}"/app/images/*.tar
+fi
+
+# 6. 安装日志：告诉用户接下来做什么。
+LOG="${TRIM_TEMP_LOGFILE:-/tmp/ktv-home-cloud-install.log}"
+{
+  echo "家庭KTV（含网盘）已安装完成。"
+  echo ""
+  echo "手机点歌：http://<飞牛IP>:8080/m"
+  echo "管理后台：http://<飞牛IP>:8080/m/admin"
+  echo "alist 网盘管理：http://<飞牛IP>:5244（账号 admin）"
+  echo "alist 管理员密码：${KTV_ALIST_PASSWORD}"
+  echo ""
+  echo "网盘挂载步骤："
+  echo "1. 用上面的账号密码登录 alist，添加百度网盘 / OneDrive / 115（Cookie 等只填在 alist 网页里）。"
+  echo "2. 回到 KTV 管理后台 -> 仪表盘，点「扫描源路径」，网盘歌曲会进入「原始音乐管理」，兼容的自动复制入库。"
+  echo ""
+  echo "注意：本应用仅适用于可信局域网，请勿把 8080/5244 端口暴露到公网。"
+} > "$LOG"
+
+exit 0

@@ -37,3 +37,7 @@ music/
 backend/data/
 /data/
 backend/src/main/resources/application-local.yml
+
+# fpk 构建产物（由 GitHub Actions 在构建时生成，不入库）
+packaging/fnos/app/images/*.tar
+packaging/fnos/app/docker/.env

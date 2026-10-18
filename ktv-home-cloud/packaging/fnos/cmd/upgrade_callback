@@ -1,0 +1,32 @@
+#!/bin/bash
+# 升级后回调：载入新镜像 -> 恢复密码配置 -> 重建启动。
+# 数据目录（曲库、数据库、网盘配置）在持久目录中，不受升级影响。
+set -e
+
+APP_ROOT="/var/apps/ktv-home-cloud"
+TARGET="${APP_ROOT}/target"
+DOCKER_DIR="${TARGET}/docker"
+VAR_DIR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
+export TRIM_PKGVAR="$VAR_DIR"
+COMPOSE="docker compose -f ${DOCKER_DIR}/docker-compose.yaml --project-name ktv-home-cloud"
+
+mkdir -p "$VAR_DIR"
+
+# 升级包可能替换了 target 目录，先从持久备份恢复密码配置。
+if [ ! -f "${DOCKER_DIR}/.env" ] && [ -f "${VAR_DIR}/docker.env.bak" ]; then
+  cp "${VAR_DIR}/docker.env.bak" "${DOCKER_DIR}/.env"
+  chmod 600 "${DOCKER_DIR}/.env"
+fi
+
+for tar in "${TARGET}"/app/images/*.tar; do
+  [ -e "$tar" ] || continue
+  docker load -i "$tar"
+  rm -f "$tar"
+done
+
+set -a
+[ -f "${DOCKER_DIR}/.env" ] && . "${DOCKER_DIR}/.env"
+set +a
+$COMPOSE up -d
+
+exit 0

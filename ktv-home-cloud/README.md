@@ -240,6 +240,12 @@ cp .env.example .env   # 填入 KTV_ALIST_PASSWORD
 docker compose -f docker-compose.nas.yml -f docker-compose.cloud.yml up -d --build --wait
 ```
 
+## 飞牛 fpk 安装包
+
+`packaging/fnos/` 是飞牛 OS 应用包源码。去仓库的 **Actions** 页面运行
+**Build fpk** 工作流，即可生成 `ktv-home-cloud-<版本>-fnOS-x86.fpk`
+（含全部 4 个 Docker 镜像，安装时无需下载），下载后在飞牛应用中心手动安装。
+
 ## 媒体与歌词
 
 ### 文件命名

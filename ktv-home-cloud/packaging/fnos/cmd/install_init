@@ -1,0 +1,8 @@
+#!/bin/bash
+# 安装前检查：Docker 必须可用。
+
+if ! docker info >/dev/null 2>&1; then
+  echo "安装需要飞牛的 Docker 服务处于运行状态，请先在飞牛中启用 Docker。" >&2
+  exit 1
+fi
+exit 0
