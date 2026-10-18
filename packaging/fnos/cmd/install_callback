@@ -1,16 +1,18 @@
 #!/bin/bash
-# 安装后回调：载入内置 Docker 镜像 -> 生成随机密码 -> 写安装日志。
-# 注意：容器由飞牛通过 config/resource 的 docker-project 声明自动启停，
-# 本脚本不执行 docker compose，也不在此时操作容器（此时容器尚未启动）。
-# 任何一步失败都不应导致安装整体失败。
+# 安装后回调：载入内置 Docker 镜像 -> 写安装日志。
+# 注意：
+# - 容器由飞牛通过 config/resource 的 docker-project 声明自动启停，
+#   本脚本不执行 docker compose，也不在此时操作容器。
+# - 密码直接硬编码在 docker-compose.yaml 中（飞牛不保证加载 .env，
+#   参考官方做法：配置硬编码）。任何一步失败都不应导致安装整体失败。
 
 APP_ROOT="/var/apps/ktv-home-cloud"
 TARGET="${APP_ROOT}/target"
-DOCKER_DIR="${TARGET}/docker"
 VAR_DIR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
 LOG="${TRIM_TEMP_LOGFILE:-/tmp/ktv-home-cloud-install.log}"
+ALIST_DEFAULT_PW="KtvAlist2026ChangeMe"
 
-mkdir -p "$VAR_DIR" "${DOCKER_DIR}"
+mkdir -p "$VAR_DIR"
 
 # 1. 载入安装包内置的 Docker 镜像（安装时无需联网下载）。
 for tar in "${TARGET}"/app/images/*.tar; do
@@ -22,38 +24,18 @@ for tar in "${TARGET}"/app/images/*.tar; do
   fi
 done >>"$LOG" 2>&1
 
-# 2. 生成随机密码，写入 docker/.env（compose 会自动读取项目目录下的 .env）。
-#    同时备份一份到持久目录，升级时可恢复。
-ENV_FILE="${DOCKER_DIR}/.env"
-ENV_BAK="${VAR_DIR}/docker.env.bak"
-if [ ! -f "$ENV_FILE" ]; then
-  DB_PW="$(openssl rand -hex 12)"
-  ALIST_PW="$(openssl rand -hex 12)"
-  {
-    echo "# ktv-home-cloud 安装时自动生成；升级时会自动恢复。"
-    echo "KTV_DB_PASSWORD=${DB_PW}"
-    echo "KTV_ALIST_PASSWORD=${ALIST_PW}"
-  } > "$ENV_FILE"
-  chmod 600 "$ENV_FILE"
-  cp "$ENV_FILE" "$ENV_BAK"
-  chmod 600 "$ENV_BAK"
-fi
-# shellcheck disable=SC1090
-set -a
-. "$ENV_FILE"
-set +a
-
-# 3. 镜像已载入，删除包内副本释放空间（约 380MB）。
+# 2. 镜像已载入，删除包内副本释放空间（约 380MB）。
 rm -f "${TARGET}"/app/images/*.tar
 
-# 4. 安装说明（飞牛安装界面会展示此日志）。
+# 3. 安装说明（飞牛安装界面会展示此日志）。
 {
   echo "家庭KTV（含网盘）安装完成，飞牛正在后台启动容器，约 1-2 分钟后可用。"
   echo ""
   echo "手机点歌：http://<飞牛IP>:8080/m"
   echo "管理后台：http://<飞牛IP>:8080/m/admin"
   echo "alist 网盘管理：http://<飞牛IP>:5244（账号 admin）"
-  echo "alist 管理员密码：${KTV_ALIST_PASSWORD}"
+  echo "alist 管理员密码：${ALIST_DEFAULT_PW}"
+  echo "  （首次登录后请在 alist 网页右下角头像 -> 修改密码）"
   echo ""
   echo "网盘挂载步骤："
   echo "1. 用上面的账号密码登录 alist，添加百度网盘 / OneDrive / 115（Cookie 等只填在 alist 网页里）。"

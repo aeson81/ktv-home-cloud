@@ -7,7 +7,9 @@ services:
     environment:
       POSTGRES_DB: ktv
       POSTGRES_USER: ktv
-      POSTGRES_PASSWORD: ${KTV_DB_PASSWORD:?缺少 KTV_DB_PASSWORD，请重新安装本应用}
+      # 固定默认密码（参考飞牛官方做法：配置硬编码，不依赖 .env）。
+      # postgres 端口不对外暴露，仅容器间使用。
+      POSTGRES_PASSWORD: "KtvDb2026ChangeMe"
       TZ: Asia/Shanghai
     volumes:
       - type: bind
@@ -34,7 +36,7 @@ services:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ktv
       SPRING_DATASOURCE_USERNAME: ktv
-      SPRING_DATASOURCE_PASSWORD: ${KTV_DB_PASSWORD:?缺少 KTV_DB_PASSWORD，请重新安装本应用}
+      SPRING_DATASOURCE_PASSWORD: "KtvDb2026ChangeMe"
       KTV_SOURCE_LIBRARY_PATH: /source-music
       KTV_CLOUD_LIBRARY_PATH: /cloud-music
       KTV_LIBRARY_PATH: /music
@@ -86,13 +88,12 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
 
-  # alist-init：在 alist 首次启动前，把 admin 密码设为 .env 中的固定值。
-  # 这样安装日志里的密码真实可用，且 rclone 挂载能用它登录 WebDAV。
-  # 每次重建容器都会重新执行，保证密码与 .env 一致（幂等）。
+  # alist-init：在 alist 首次启动前，把 admin 密码设为固定默认值。
+  # （飞牛不保证加载 .env，密码硬编码在 compose 中才可靠。）
   alist-init:
     image: xhofe/alist:latest
     container_name: ktv-alist-init
-    command: ["./alist", "admin", "set", "${KTV_ALIST_PASSWORD:?缺少 KTV_ALIST_PASSWORD，请重新安装本应用}"]
+    command: ["./alist", "admin", "set", "KtvAlist2026ChangeMe"]
     volumes:
       - type: bind
         source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/alist
@@ -138,7 +139,7 @@ services:
     environment:
       RCLONE_CONFIG: /config/rclone/rclone.conf
       KTV_ALIST_URL: http://alist:5244/dav
-      KTV_ALIST_PASSWORD: ${KTV_ALIST_PASSWORD:?缺少 KTV_ALIST_PASSWORD，请重新安装本应用}
+      KTV_ALIST_PASSWORD: "KtvAlist2026ChangeMe"
       TZ: Asia/Shanghai
     volumes:
       - type: bind

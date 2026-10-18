@@ -1,20 +1,14 @@
 #!/bin/bash
-# 升级后回调：载入新镜像 -> 恢复密码配置。
+# 升级后回调：载入新镜像。
 # 容器由飞牛自动重建；曲库、数据库、网盘配置都在持久目录，不受升级影响。
+# 密码硬编码在 compose 文件中，无需恢复。
 # 任何一步失败都不应导致升级整体失败。
 
 APP_ROOT="/var/apps/ktv-home-cloud"
 TARGET="${APP_ROOT}/target"
-DOCKER_DIR="${TARGET}/docker"
 VAR_DIR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
 
-mkdir -p "$VAR_DIR" "${DOCKER_DIR}"
-
-# 升级包可能替换了 target 目录，先从持久备份恢复密码配置。
-if [ ! -f "${DOCKER_DIR}/.env" ] && [ -f "${VAR_DIR}/docker.env.bak" ]; then
-  cp "${VAR_DIR}/docker.env.bak" "${DOCKER_DIR}/.env"
-  chmod 600 "${DOCKER_DIR}/.env"
-fi
+mkdir -p "$VAR_DIR"
 
 for tar in "${TARGET}"/app/images/*.tar; do
   [ -e "$tar" ] || continue
