@@ -75,14 +75,14 @@ public class CloudConfigService {
                                            String localSourcePath) {
         if (cookie115 != null) {
             if (cookie115.isBlank()) {
-                secrets.deleteById(KEY_115_COOKIE);
+                deleteSecretIfExists(KEY_115_COOKIE);
             } else {
                 saveSecret(KEY_115_COOKIE, cookie115.trim());
             }
         }
         if (onedriveToken != null) {
             if (onedriveToken.isBlank()) {
-                secrets.deleteById(KEY_ONEDRIVE_TOKEN);
+                deleteSecretIfExists(KEY_ONEDRIVE_TOKEN);
             } else {
                 saveSecret(KEY_ONEDRIVE_TOKEN, onedriveToken.trim());
             }
@@ -243,6 +243,16 @@ public class CloudConfigService {
         s.setCiphertext(enc.ciphertext());
         s.setNonce(enc.nonce());
         secrets.save(s);
+    }
+
+    private void deleteSecretIfExists(String key) {
+        try {
+            if (secrets.existsById(key)) {
+                secrets.deleteById(key);
+            }
+        } catch (Exception e) {
+            log.warn("[CloudConfig] delete secret {} failed: {}", key, e.getMessage());
+        }
     }
 
     private String mask(String s) {

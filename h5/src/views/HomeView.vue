@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <header class="topbar">
-      <div class="brand"><img class="brand-mark" src="../assets/home-ktv-logo.png" alt="Home KTV"><div><b>Home KTV</b><small>客厅欢唱局</small></div></div>
+      <div class="brand"><img class="brand-mark" src="../assets/home-ktv-logo.png" alt="K无限"><div><b>K无限</b><small>客厅欢唱局</small></div></div>
       <span class="room"><i></i>电视在线</span>
     </header>
 
