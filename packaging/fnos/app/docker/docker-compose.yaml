@@ -32,6 +32,12 @@ services:
     devices:
       # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
       - /dev/dri:/dev/dri
+      # FUSE 设备：容器启动脚本在内部把 alist WebDAV 挂载为 /cloud-music。
+      - /dev/fuse:/dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
     environment:
       SERVER_PORT: 8080
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ktv
@@ -41,6 +47,8 @@ services:
       KTV_CLOUD_LIBRARY_PATH: /cloud-music
       KTV_LIBRARY_PATH: /music
       KTV_DATA_PATH: /data
+      KTV_ALIST_PASSWORD: "KtvAlist2026ChangeMe"
+      KTV_ALIST_URL: http://alist:5244/dav
       KTV_DISCOVERY_ENABLED: "true"
       KTV_DISCOVERY_UDP_PORT: 18888
       KTV_DISCOVERY_NAME: 家庭KTV
@@ -68,16 +76,10 @@ services:
         target: /data
         bind:
           create_host_path: true
-      - type: bind
-        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/cloud-music
-        target: /cloud-music
-        bind:
-          create_host_path: true
-          propagation: rslave
     depends_on:
       db:
         condition: service_healthy
-      cloud-mount:
+      alist:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/health | grep -q '\"status\":\"UP\"'"]
@@ -124,42 +126,4 @@ services:
       timeout: 10s
       retries: 10
       start_period: 15s
-    restart: unless-stopped
-
-  # cloud-mount：把 alist 的 WebDAV 挂载为 KTV 的只读网盘源。
-  cloud-mount:
-    image: docker.m.daocloud.io/rclone/rclone:latest
-    container_name: ktv-cloud-mount
-    devices:
-      - /dev/fuse:/dev/fuse
-    cap_add:
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    environment:
-      RCLONE_CONFIG: /config/rclone/rclone.conf
-      KTV_ALIST_URL: http://alist:5244/dav
-      KTV_ALIST_PASSWORD: "KtvAlist2026ChangeMe"
-      TZ: Asia/Shanghai
-    volumes:
-      - type: bind
-        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/cloud-music
-        target: /mnt/cloud
-        bind:
-          create_host_path: true
-          propagation: rshared
-      - type: bind
-        source: ./scripts/rclone-mount.sh
-        target: /scripts/rclone-mount.sh
-        read_only: true
-    entrypoint: ["/bin/sh", "/scripts/rclone-mount.sh"]
-    depends_on:
-      alist:
-        condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "rclone lsd alist: --max-depth 1 >/dev/null 2>&1"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 20s
     restart: unless-stopped

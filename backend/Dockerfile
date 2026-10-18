@@ -45,9 +45,11 @@ ENV KTV_RELEASE_VERSION=${KTV_RELEASE_VERSION} \
 # 打包 FFmpeg（含 ffprobe），供曲库扫描解析媒体。
 # Intel VAAPI requires the userspace iHD driver in addition to FFmpeg's VAAPI encoders.
 # intel-media-driver is x86_64-only, so keep the multi-architecture ARM64 image unchanged.
+# 另打包 rclone + fuse：KTV 容器启动时在内部把 alist WebDAV 挂载为 /cloud-music
+#（飞牛不支持跨容器的 bind propagation，独立 sidecar 方案不可靠）。
 RUN sed -i 's#https://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
     && for attempt in 1 2 3; do \
-      apk add --no-cache ffmpeg && break; \
+      apk add --no-cache ffmpeg rclone fuse3 && break; \
       if [ "$attempt" -eq 3 ]; then exit 1; fi; \
       sleep 5; \
     done \
@@ -56,6 +58,8 @@ RUN sed -i 's#https://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/
     fi
 
 COPY --from=build /build/target/home-ktv-server.jar app.jar
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
