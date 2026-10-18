@@ -1,19 +1,5 @@
 #!/bin/bash
-# 升级后回调：载入新镜像。
-# 容器由飞牛自动重建；曲库、数据库、网盘配置都在持久目录，不受升级影响。
-# 密码硬编码在 compose 文件中，无需恢复。
-# 任何一步失败都不应导致升级整体失败。
-
-APP_ROOT="/var/apps/ktv-home-cloud"
-TARGET="${APP_ROOT}/target"
-VAR_DIR="${TRIM_PKGVAR:-${APP_ROOT}/var}"
-
-mkdir -p "$VAR_DIR"
-
-for tar in "${TARGET}"/app/images/*.tar; do
-  [ -e "$tar" ] || continue
-  docker load -i "$tar" >/dev/null 2>&1 || true
-  rm -f "$tar"
-done
+# 升级后回调：无特殊操作。
+# 容器由飞牛自动重建（镜像从仓库拉取）；曲库、数据库、网盘配置都在持久目录，不受升级影响。
 
 exit 0

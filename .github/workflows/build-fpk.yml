@@ -2,6 +2,9 @@ name: Build fpk
 
 # 在仓库的 Actions 页面点 "Run workflow" 即可生成 .fpk 安装包，
 # 构建产物在 workflow 运行页面的 Artifacts 中下载。
+# 说明：KTV 镜像推送到 ghcr.io/aeson81/ktv-home-cloud:latest（公开），
+# 依赖镜像走 docker.m.daocloud.io 镜像站；fpk 内不再打包镜像文件，
+# 飞牛安装时直接拉取（NAS 已验证 ghcr.io 与 daocloud 均可连通）。
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -24,6 +28,13 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Resolve version
         id: version
@@ -38,32 +49,21 @@ jobs:
           sed -i "s/^version=.*/version=$VERSION/" packaging/fnos/manifest
           grep '^version=' packaging/fnos/manifest
 
-      - name: Build KTV image (with cloud-drive patch)
+      - name: Build and push KTV image (with cloud-drive patch)
         run: |
           docker build --build-arg BASE_REGISTRY=docker.io \
-            -f backend/Dockerfile -t ktv-home-cloud:latest .
-
-      - name: Pull dependency images
-        run: |
-          docker pull postgres:16-alpine
-          docker pull xhofe/alist:latest
-          docker pull rclone/rclone:latest
-
-      - name: Save images into the package
-        run: |
-          mkdir -p packaging/fnos/app/images
-          docker save -o packaging/fnos/app/images/ktv-home-cloud.tar ktv-home-cloud:latest
-          docker save -o packaging/fnos/app/images/postgres.tar postgres:16-alpine
-          docker save -o packaging/fnos/app/images/alist.tar xhofe/alist:latest
-          docker save -o packaging/fnos/app/images/rclone.tar rclone/rclone:latest
-          ls -lh packaging/fnos/app/images/
+            -f backend/Dockerfile \
+            -t ghcr.io/aeson81/ktv-home-cloud:latest \
+            -t ghcr.io/aeson81/ktv-home-cloud:${{ steps.version.outputs.version }} .
+          docker push ghcr.io/aeson81/ktv-home-cloud:latest
+          docker push ghcr.io/aeson81/ktv-home-cloud:${{ steps.version.outputs.version }}
 
       - name: Prepare fnpack (vendored, checksum verified)
         run: |
           echo "54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93  tools/fnpack-linux-amd64" | sha256sum -c -
           chmod +x tools/fnpack-linux-amd64
           cp tools/fnpack-linux-amd64 fnpack
-          ./fnpack --help
+          ./fnpack --help >/dev/null
 
       - name: Build fpk
         run: |

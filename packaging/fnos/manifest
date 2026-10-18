@@ -15,4 +15,4 @@ service_port=8080
 checkport=true
 ctl_stop=true
 disable_authorization_path=true
-changelog=首个 fpk 版本：集成网盘只读源（百度网盘/OneDrive/115），4 个 Docker 镜像已打包在安装包内，安装时无需下载。
+changelog=首个 fpk 版本：集成网盘只读源（百度网盘/OneDrive/115）；镜像从 ghcr.io 与镜像站拉取。
