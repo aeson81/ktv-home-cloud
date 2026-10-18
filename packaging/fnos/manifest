@@ -1,7 +1,7 @@
 appname=ktv-home-cloud
 version=1.0.0
-display_name=家庭KTV（含网盘）
-desc=局域网家庭KTV点歌系统：电视负责播放，手机扫码点歌；支持把百度网盘、OneDrive、115挂载为只读曲库源。基于上游 zhayinggang/ktv-home，增加网盘功能。
+display_name=K无限
+desc=局域网K无限点歌系统：电视负责播放，手机扫码点歌；支持把百度网盘、OneDrive、115挂载为只读曲库源。基于上游 zhayinggang/ktv-home，增加网盘功能。
 platform=x86
 source=thirdparty
 maintainer=zhayinggang

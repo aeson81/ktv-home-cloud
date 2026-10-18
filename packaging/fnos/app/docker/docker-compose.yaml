@@ -27,7 +27,8 @@ services:
     stop_grace_period: 1m
 
   ktv:
-    image: ghcr.io/aeson81/ktv-home-cloud:latest
+    # 国内经 daocloud 镜像站拉取（Docker Hub 镜像的国内加速），比直连 ghcr.io 快。
+    image: docker.m.daocloud.io/aeson81/ktv-home-cloud:latest
     container_name: ktv-app
     devices:
       # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
@@ -49,9 +50,11 @@ services:
       KTV_DATA_PATH: /data
       KTV_ALIST_PASSWORD: "KtvAlist2026ChangeMe"
       KTV_ALIST_URL: http://alist:5244/dav
+      # 启动时自动扫描歌曲库（对应「运行设置」里的开关，true/false）
+      KTV_AUTO_SCAN: "false"
       KTV_DISCOVERY_ENABLED: "true"
       KTV_DISCOVERY_UDP_PORT: 18888
-      KTV_DISCOVERY_NAME: 家庭KTV
+      KTV_DISCOVERY_NAME: K无限
       KTV_AI_ENABLED: "false"
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -Xmx512m
       TZ: Asia/Shanghai
