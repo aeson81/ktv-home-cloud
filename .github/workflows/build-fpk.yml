@@ -37,12 +37,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
+        if: secrets.DOCKERHUB_USERNAME != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to houlang mirror
+        if: secrets.HOULANG_USERNAME != ''
         uses: docker/login-action@v3
         with:
           registry: mirror.houlang.cloud
@@ -65,20 +67,27 @@ jobs:
       - name: Build and push KTV image (with cloud-drive patch)
         run: |
           VER="${{ steps.version.outputs.version }}"
-          docker build --build-arg BASE_REGISTRY=docker.io \
-            -f backend/Dockerfile \
-            -t ghcr.io/aeson81/ktv-home-cloud:latest \
-            -t ghcr.io/aeson81/ktv-home-cloud:${VER} \
-            -t aeson81/ktv-home-cloud:latest \
-            -t aeson81/ktv-home-cloud:${VER} \
-            -t mirror.houlang.cloud/aeson81/ktv-home-cloud:latest \
-            -t mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER} .
+          # 始终构建 GHCR 标签
+          TAGS="-t ghcr.io/aeson81/ktv-home-cloud:latest -t ghcr.io/aeson81/ktv-home-cloud:${VER}"
+          # 可选：Docker Hub（需配 DOCKERHUB_USERNAME/S_TOKEN）
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            TAGS="$TAGS -t aeson81/ktv-home-cloud:latest -t aeson81/ktv-home-cloud:${VER}"
+          fi
+          # 可选：houlang 镜像站（需配 HOULANG_USERNAME/PASSWORD）
+          if [ -n "${{ secrets.HOULANG_USERNAME }}" ]; then
+            TAGS="$TAGS -t mirror.houlang.cloud/aeson81/ktv-home-cloud:latest -t mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER}"
+          fi
+          docker build --build-arg BASE_REGISTRY=docker.io -f backend/Dockerfile $TAGS .
           docker push ghcr.io/aeson81/ktv-home-cloud:latest
           docker push ghcr.io/aeson81/ktv-home-cloud:${VER}
-          docker push aeson81/ktv-home-cloud:latest
-          docker push aeson81/ktv-home-cloud:${VER}
-          docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
-          docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER}
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            docker push aeson81/ktv-home-cloud:latest
+            docker push aeson81/ktv-home-cloud:${VER}
+          fi
+          if [ -n "${{ secrets.HOULANG_USERNAME }}" ]; then
+            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
+            docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER}
+          fi
 
       - name: Prepare fnpack (vendored, checksum verified)
         run: |
