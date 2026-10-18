@@ -63,7 +63,7 @@ jobs:
           echo "54b97fa7b70968c4d05c79840f5daeff508957d0bb2062fdb0376d00d9615c93  tools/fnpack-linux-amd64" | sha256sum -c -
           chmod +x tools/fnpack-linux-amd64
           cp tools/fnpack-linux-amd64 fnpack
-          ./fnpack --version
+          ./fnpack --help
 
       - name: Build fpk
         run: |
