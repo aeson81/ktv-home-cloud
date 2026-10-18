@@ -107,14 +107,14 @@ function formatBytes(bytes) {
 </script>
 
 <style scoped>
-.admin-shell { --admin-blue:#2563eb; --admin-border:#e2e8f0; --admin-muted:#64748b; display:flex; min-height:100vh; background:#f5f7fa; color:#172033; }
-.side { width:220px; flex:none; background:#fff; border-right:1px solid var(--admin-border); }
+.admin-shell { --admin-blue:#a78bfa; --admin-gold:#ffc64b; --admin-border:rgba(255,255,255,.08); --admin-muted:#aeb7c5; display:flex; min-height:100vh; background:#101319; color:#f7f8fb; }
+.side { width:220px; flex:none; background:#181d25; border-right:1px solid var(--admin-border); }
 .brand { height:76px; padding:18px 20px; border-bottom:1px solid var(--admin-border); display:flex; flex-direction:column; justify-content:center; }
-.brand strong { font-size:18px; line-height:1; }.brand span { margin-top:7px; color:#94a3b8; font-size:11px; }
-nav { padding:16px 12px; }.nav-label { padding:0 10px 8px; font-size:11px; color:#94a3b8; }
-.mi { display:flex; align-items:center; gap:10px; min-height:42px; padding:0 12px; margin-bottom:4px; border-radius:6px; color:#475569; font-size:13px; border:1px solid transparent; }
-.mi span { width:18px; text-align:center; font-size:16px; color:#64748b; }.mi:hover { background:#f8fafc; color:#172033; }
-.mi.on { color:var(--admin-blue); background:#eff6ff; border-color:#bfdbfe; font-weight:600; box-shadow:inset 3px 0 0 var(--admin-blue); }.mi.on span { color:var(--admin-blue); }
+.brand strong { font-size:18px; line-height:1; color:var(--admin-gold); }.brand span { margin-top:7px; color:#747f90; font-size:11px; }
+nav { padding:16px 12px; }.nav-label { padding:0 10px 8px; font-size:11px; color:#747f90; }
+.mi { display:flex; align-items:center; gap:10px; min-height:42px; padding:0 12px; margin-bottom:4px; border-radius:6px; color:#aeb7c5; font-size:13px; border:1px solid transparent; }
+.mi span { width:18px; text-align:center; font-size:16px; color:#747f90; }.mi:hover { background:#202630; color:#f7f8fb; }
+.mi.on { color:var(--admin-gold); background:rgba(255,198,75,.08); border-color:rgba(255,198,75,.25); font-weight:600; box-shadow:inset 3px 0 0 var(--admin-gold); }.mi.on span { color:var(--admin-gold); }
 .main { flex:1; min-width:0; padding:24px 28px 48px; overflow:auto; }
 .notice-mask { position:fixed; inset:0; z-index:200; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.48); }
 .release-notice { width:min(520px,calc(100vw - 28px)); overflow:hidden; border:1px solid #dbe3ee; border-radius:8px; background:#fff; box-shadow:0 24px 70px rgba(15,23,42,.24); }
@@ -149,4 +149,41 @@ nav { padding:16px 12px; }.nav-label { padding:0 10px 8px; font-size:11px; color
   .main { padding:16px 12px 36px; overflow:visible; }
   .package-list { grid-template-columns:1fr; }
 }
+</style>
+<style>
+/* 管理后台深色主题全局覆盖（KTV 霓虹风） */
+.admin-shell .main { background:#101319; color:#f7f8fb; }
+.admin-shell .main h1 { color:#f7f8fb; }
+.admin-shell .main p { color:#aeb7c5; }
+.admin-shell .page-head p { color:#747f90; }
+.admin-shell .filter-panel,
+.admin-shell .progress-panel,
+.admin-shell .table-panel,
+.admin-shell .settings-shell,
+.admin-shell .cloud-config-panel,
+.admin-shell .card {
+  background:#181d25 !important;
+  border-color:rgba(255,255,255,.08) !important;
+  color:#f7f8fb;
+}
+.admin-shell table { color:#f7f8fb; }
+.admin-shell td, .admin-shell th { border-bottom-color:rgba(255,255,255,.06) !important; }
+.admin-shell td strong { color:#f7f8fb !important; }
+.admin-shell td small, .admin-shell .toolbar, .admin-shell .pager { color:#aeb7c5 !important; }
+.admin-shell input, .admin-shell select, .admin-shell textarea {
+  background:#202630 !important;
+  border-color:rgba(255,255,255,.1) !important;
+  color:#f7f8fb !important;
+}
+.admin-shell .secondary { background:#202630 !important; border-color:rgba(255,255,255,.1) !important; color:#f7f8fb !important; }
+.admin-shell .primary { background:linear-gradient(135deg,#ffc64b,#dba70e) !important; color:#1a1400 !important; border:none !important; }
+.admin-shell .badge { background:rgba(255,255,255,.06) !important; color:#aeb7c5 !important; }
+.admin-shell .badge.ok { background:rgba(52,211,153,.12) !important; color:#34d399 !important; }
+.admin-shell .action-cell { background:#181d25 !important; border-left-color:rgba(255,255,255,.08) !important; }
+.admin-shell .link { background:#202630 !important; border-color:rgba(255,255,255,.1) !important; color:#a78bfa !important; }
+.admin-shell .status.blue { background:rgba(167,139,250,.12) !important; color:#a78bfa !important; }
+.admin-shell .status.green { background:rgba(52,211,153,.12) !important; color:#34d399 !important; }
+.admin-shell .status.amber { background:rgba(255,198,75,.12) !important; color:#ffc64b !important; }
+.admin-shell .status.red { background:rgba(248,113,113,.12) !important; color:#f87171 !important; }
+.admin-shell .status.neutral { background:rgba(255,255,255,.06) !important; color:#aeb7c5 !important; }
 </style>

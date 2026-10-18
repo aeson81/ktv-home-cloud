@@ -1,93 +1,85 @@
 #!/bin/sh
-# KTV 容器启动入口：先挂载 alist WebDAV 为 /cloud-music（网盘只读源），再启动 Java 服务。
-# 挂载在容器内部完成，不依赖跨容器的 bind propagation。
-#
-# 密码解耦设计：rclone 不直接用 admin 账号，而是通过 alist API 创建独立的
-# 只读用户 `rclone`（密码固定）。用户在 alist 网页端修改 admin 密码不会影响挂载。
+# KTV 容器启动入口：用 rclone 直连 115 网盘，挂载为 /cloud-music/115，再启动 Java 服务。
+# 不再依赖 alist（alist 项目已被出售，改用 rclone 原生支持）。
 set -eu
 
-RCLONE_USER="rclone"
-RCLONE_PASS="KtvRclone2026ReadOnly"
+MOUNT_POINT="/cloud-music"
+RCLONE_CONF="/root/.config/rclone/rclone.conf"
 
-if [ -n "${KTV_ALIST_PASSWORD:-}" ]; then
-  ALIST_HOST="${KTV_ALIST_HOST:-http://alist:5244}"
-  ALIST_URL="${KTV_ALIST_URL:-http://alist:5244/dav}"
-  MOUNT_POINT="/cloud-music"
-  echo "[init] Preparing alist rclone user..."
+mkdir -p "$MOUNT_POINT" /root/.config/rclone
+# 清理上次残留的挂载（容器重启时）。
+fusermount -uz "$MOUNT_POINT" 2>/dev/null || umount -l "$MOUNT_POINT" 2>/dev/null || true
 
-  # 等待 alist 就绪（最多 60 秒）。
-  READY=0
-  for i in $(seq 1 30); do
-    if wget -qO- "$ALIST_HOST/api/public/settings" >/dev/null 2>&1; then
-      READY=1
-      break
-    fi
-    sleep 2
-  done
+# 生成 rclone 配置。115 需要 Cookie（KTV_115_COOKIE 环境变量）。
+# 格式：UID=xxx; CID=xxx; SEID=xxx（在浏览器登录 115 后按 F12 从请求头复制）。
+cat > "$RCLONE_CONF" <<'CONFEOF'
+# rclone 配置由 docker-entrypoint.sh 动态生成。
+CONFEOF
+chmod 600 "$RCLONE_CONF"
 
-  if [ "$READY" = "1" ]; then
-    # 用 admin 登录拿 token。
-    TOKEN="$(wget -qO- --header="Content-Type: application/json" \
-      --post-data="{\"username\":\"admin\",\"password\":\"$KTV_ALIST_PASSWORD\"}" \
-      "$ALIST_HOST/api/auth/login" 2>/dev/null | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
-    if [ -n "$TOKEN" ]; then
-      # 查 rclone 用户是否存在，不存在则创建（只读权限）。
-      EXISTS="$(wget -qO- --header="Authorization: $TOKEN" \
-        "$ALIST_HOST/api/admin/user/list" 2>/dev/null | grep -c "\"username\":\"$RCLONE_USER\"" || true)"
-      if [ "$EXISTS" = "0" ]; then
-        echo "[init] Creating alist user '$RCLONE_USER'..."
-        wget -qO- --header="Content-Type: application/json" \
-          --header="Authorization: $TOKEN" \
-          --post-data="{\"username\":\"$RCLONE_USER\",\"password\":\"$RCLONE_PASS\",\"base_path\":\"/\",\"role\":0,\"disabled\":false,\"permission\":1}" \
-          "$ALIST_HOST/api/admin/user/create" >/dev/null 2>&1 || \
-          echo "[init] WARNING: failed to create rclone user, falling back to admin"
-      fi
-    else
-      echo "[init] WARNING: alist admin login failed, falling back to admin for mount"
-    fi
-  else
-    echo "[init] WARNING: alist not ready, falling back to admin for mount"
-  fi
+MOUNTED=0
 
-  # 决定挂载用哪个账号：如果 rclone 用户创建成功就用它，否则回退到 admin。
-  MOUNT_USER="$RCLONE_USER"
-  MOUNT_PASS="$RCLONE_PASS"
-  # 简单探测：如果 rclone 用户登录失败，回退到 admin。
-  if ! wget -qO- --header="Content-Type: application/json" \
-    --post-data="{\"username\":\"$RCLONE_USER\",\"password\":\"$RCLONE_PASS\"}" \
-    "$ALIST_HOST/api/auth/login" 2>/dev/null | grep -q '"code":200'; then
-    echo "[init] rclone user not usable, using admin for mount"
-    MOUNT_USER="admin"
-    MOUNT_PASS="$KTV_ALIST_PASSWORD"
-  fi
-
-  echo "[init] Mounting alist WebDAV $ALIST_URL -> $MOUNT_POINT (user: $MOUNT_USER)"
-  mkdir -p "$MOUNT_POINT" /root/.config/rclone
-  # 清理上次残留的挂载（容器重启时）。
-  fusermount -uz "$MOUNT_POINT" 2>/dev/null || umount -l "$MOUNT_POINT" 2>/dev/null || true
-  OBSCURED="$(rclone obscure "$MOUNT_PASS")"
-  cat > /root/.config/rclone/rclone.conf <<EOF
-[alist]
-type = webdav
-url = $ALIST_URL
-vendor = other
-user = $MOUNT_USER
-pass = $OBSCURED
+if [ -n "${KTV_115_COOKIE:-}" ]; then
+  echo "[init] Configuring rclone for 115..."
+  # rclone obscure 会对特殊字符做处理，但 cookie 中的分号和等号需要原样保留，
+  # 115 后端直接读取 cookie 字符串，此处不做 obscure。
+  cat >> "$RCLONE_CONF" <<EOF
+[115]
+type = 115
+cookie = ${KTV_115_COOKIE}
 EOF
-  chmod 600 /root/.config/rclone/rclone.conf
-  # 后台挂载；即使失败也不阻塞主服务（降级为无网盘源）。
-  if ! rclone mount alist: "$MOUNT_POINT" \
+  echo "[init] Mounting 115 -> $MOUNT_POINT/115"
+  mkdir -p "$MOUNT_POINT/115"
+  fusermount -uz "$MOUNT_POINT/115" 2>/dev/null || umount -l "$MOUNT_POINT/115" 2>/dev/null || true
+  if rclone mount "115:" "$MOUNT_POINT/115" \
     --allow-other \
     --allow-non-empty \
     --vfs-cache-mode writes \
     --dir-cache-time 5m \
     --poll-interval 1m \
     --daemon; then
-    echo "[init] WARNING: rclone mount failed, continuing without cloud source"
+    echo "[init] 115 mounted successfully"
+    MOUNTED=1
+  else
+    echo "[init] WARNING: 115 mount failed (Cookie 可能过期，请更新 KTV_115_COOKIE)"
   fi
   sleep 2
 else
-  echo "[init] KTV_ALIST_PASSWORD not set, skipping cloud mount"
+  echo "[init] KTV_115_COOKIE not set, skipping 115 mount"
+fi
+
+if [ "$MOUNTED" = "0" ]; then
+  echo "[init] No cloud source mounted, continuing with local source only"
+fi
+
+# OneDrive（rclone 原生支持，含全球/中国/德国/美国分区）。
+if [ -n "${KTV_ONEDRIVE_TOKEN:-}" ]; then
+  REGION="${KTV_ONEDRIVE_REGION:-global}"
+  echo "[init] Configuring rclone for OneDrive (region: $REGION)..."
+  # token 是 JSON，需转义后写入。rclone 的 obscure 对 token 不适用，直接明文存储（文件权限 600）。
+  cat >> "$RCLONE_CONF" <<EOF
+[onedrive]
+type = onedrive
+region = $REGION
+token = ${KTV_ONEDRIVE_TOKEN}
+EOF
+  echo "[init] Mounting OneDrive -> $MOUNT_POINT/onedrive"
+  mkdir -p "$MOUNT_POINT/onedrive"
+  fusermount -uz "$MOUNT_POINT/onedrive" 2>/dev/null || umount -l "$MOUNT_POINT/onedrive" 2>/dev/null || true
+  if rclone mount "onedrive:" "$MOUNT_POINT/onedrive" \
+    --allow-other \
+    --allow-non-empty \
+    --vfs-cache-mode writes \
+    --dir-cache-time 5m \
+    --poll-interval 1m \
+    --daemon; then
+    echo "[init] OneDrive mounted successfully"
+  else
+    echo "[init] WARNING: OneDrive mount failed (Token 可能过期，请重新获取)"
+  fi
+  sleep 2
+else
+  echo "[init] KTV_ONEDRIVE_TOKEN not set, skipping OneDrive mount"
 fi
 
 exec java -jar /app/app.jar

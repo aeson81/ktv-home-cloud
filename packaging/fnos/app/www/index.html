@@ -6,14 +6,18 @@
 <title>K无限</title>
 <style>
   body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-         background: #17133b; color: #fff; margin: 0; padding: 32px 20px; }
+         background: radial-gradient(ellipse at 50% -20%, #2b2560 0%, #17133b 60%, #0f0c28 100%);
+         color: #fff; margin: 0; padding: 32px 20px; min-height: 100vh; }
   .wrap { max-width: 560px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 6px; }
+  h1 { font-size: 28px; margin: 0 0 6px; background: linear-gradient(135deg, #ffc64b, #ff6b61, #a78bfa);
+       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   p.desc { color: #b9b3d9; font-size: 14px; margin: 0 0 24px; }
-  a.card { display: block; background: #221d4e; border-radius: 12px;
+  a.card { display: block; background: rgba(34,29,78,.8); border-radius: 12px;
            padding: 16px 18px; margin-bottom: 12px; color: #fff;
-           text-decoration: none; border: 1px solid #35306b; }
-  a.card:hover { background: #2b2560; }
+           text-decoration: none; border: 1px solid #35306b;
+           backdrop-filter: blur(8px); transition: all .2s; }
+  a.card:hover { background: #2b2560; border-color: #a78bfa; transform: translateY(-2px);
+                 box-shadow: 0 8px 24px rgba(167,139,250,.2); }
   a.card b { font-size: 17px; display: block; margin-bottom: 4px; }
   a.card span { font-size: 13px; color: #b9b3d9; word-break: break-all; }
   .foot { margin-top: 24px; font-size: 12px; color: #8f89b8; line-height: 1.8; }
@@ -22,11 +26,12 @@
 <body>
 <div class="wrap">
   <h1>K无限</h1>
-  <p class="desc">电视负责播放，手机扫码点歌；百度网盘 / OneDrive / 115 可挂载为只读曲库源。</p>
+  <p class="desc">电视负责播放，手机扫码点歌；115 / OneDrive 可挂载为只读曲库源。</p>
   <div id="links"></div>
   <div class="foot">
-    网盘挂载步骤：先在「alist 网盘管理」中添加百度网盘 / OneDrive / 115（账号 admin，密码见安装日志），
-    再到「管理后台」→ 仪表盘点「扫描源路径」，网盘歌曲就会进入「原始音乐管理」。
+    网盘挂载步骤：到「管理后台」→「原始音乐管理」→ 顶部「网盘配置」，
+    填写 115 Cookie 或 OneDrive 配置，保存后自动挂载；
+    再到仪表盘点「扫描源路径」，网盘歌曲就会进入「原始音乐管理」。
   </div>
 </div>
 <script>
@@ -34,8 +39,7 @@
   var h = location.hostname;
   var items = [
     ["手机点歌", "微信扫码电视上的二维码，或直接打开此页", "http://" + h + ":8080/m"],
-    ["管理后台", "曲库、转码、扫描入库", "http://" + h + ":8080/m/admin"],
-    ["alist 网盘管理", "添加百度网盘 / OneDrive / 115", "http://" + h + ":5244"]
+    ["管理后台", "曲库、转码、扫描入库、网盘配置", "http://" + h + ":8080/m/admin"]
   ];
   var box = document.getElementById("links");
   items.forEach(function (it) {

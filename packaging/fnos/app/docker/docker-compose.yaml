@@ -33,7 +33,7 @@ services:
     devices:
       # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
       - /dev/dri:/dev/dri
-      # FUSE 设备：容器启动脚本在内部把 alist WebDAV 挂载为 /cloud-music。
+      # FUSE 设备：容器启动脚本在内部用 rclone 直连 115 网盘，挂载为 /cloud-music。
       - /dev/fuse:/dev/fuse
     cap_add:
       - SYS_ADMIN
@@ -48,8 +48,15 @@ services:
       KTV_CLOUD_LIBRARY_PATH: /cloud-music
       KTV_LIBRARY_PATH: /music
       KTV_DATA_PATH: /data
-      KTV_ALIST_PASSWORD: "KtvAlist2026ChangeMe"
-      KTV_ALIST_URL: http://alist:5244/dav
+      # 115 网盘 Cookie（格式：UID=xxx; CID=xxx; SEID=xxx）。
+      # 在浏览器登录 115 后按 F12 从请求头复制，填在这里。留空则不挂载 115。
+      KTV_115_COOKIE: ""
+      # OneDrive 配置（rclone 原生支持）。
+      # KTV_ONEDRIVE_REGION: global=国际版, cn=中国版(世纪互联), de=德国版, us=美国政府版
+      KTV_ONEDRIVE_REGION: ""
+      # KTV_ONEDRIVE_TOKEN: 在电脑上跑 `rclone config` 配好 OneDrive 后，
+      # 从 ~/.config/rclone/rclone.conf 里复制 token 整行 JSON 填到这里。留空则不挂载。
+      KTV_ONEDRIVE_TOKEN: ""
       # 启动时自动扫描歌曲库（对应「运行设置」里的开关，true/false）
       KTV_AUTO_SCAN: "false"
       KTV_DISCOVERY_ENABLED: "true"
@@ -79,11 +86,17 @@ services:
         target: /data
         bind:
           create_host_path: true
+      # 宿主机数据目录（只读挂载，供前端选择本地源目录用）。
+      # 默认挂载 /vol2/1000（飞牛常用数据卷）；其他 NAS 请按需修改。
+      - type: bind
+        source: /vol2/1000
+        target: /host-data
+        read_only: true
+        bind:
+          create_host_path: true
     depends_on:
       db:
         condition: service_healthy
-      alist:
-        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/health | grep -q '\"status\":\"UP\"'"]
       interval: 10s
@@ -92,41 +105,3 @@ services:
       start_period: 30s
     restart: unless-stopped
     stop_grace_period: 30s
-
-  # alist-init：在 alist 首次启动前，把 admin 密码设为固定默认值。
-  # （飞牛不保证加载 .env，密码硬编码在 compose 中才可靠。）
-  alist-init:
-    image: docker.m.daocloud.io/xhofe/alist:latest
-    container_name: ktv-alist-init
-    command: ["./alist", "admin", "set", "KtvAlist2026ChangeMe"]
-    volumes:
-      - type: bind
-        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/alist
-        target: /opt/alist/data
-        bind:
-          create_host_path: true
-    restart: "no"
-
-  # alist：聚合百度网盘 / OneDrive / 115，暴露 WebDAV。
-  # 网盘账号请在 http://<飞牛IP>:5244 网页端自行添加（账号 admin，密码见安装日志）。
-  alist:
-    image: docker.m.daocloud.io/xhofe/alist:latest
-    container_name: ktv-alist
-    ports:
-      - "5244:5244"
-    volumes:
-      - type: bind
-        source: ${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}/alist
-        target: /opt/alist/data
-        bind:
-          create_host_path: true
-    depends_on:
-      alist-init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:5244/"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 15s
-    restart: unless-stopped

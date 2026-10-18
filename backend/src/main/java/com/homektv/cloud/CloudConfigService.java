@@ -32,6 +32,10 @@ public class CloudConfigService {
     private static final String KEY_115_COOKIE = "cloud.115.cookie";
     private static final String KEY_ONEDRIVE_TOKEN = "cloud.onedrive.token";
     private static final String KEY_ONEDRIVE_REGION = "cloud.onedrive.region";
+    private static final String KEY_LOCAL_SOURCE_PATH = "local.source.path";
+
+    /** 允许的本地源目录前缀（安全限制，防止路径遍历）。 */
+    private static final String[] ALLOWED_PREFIXES = {"/source-music", "/host-data", "/music"};
 
     private static final Path RCLONE_CONF = Paths.get("/root/.config/rclone/rclone.conf");
     private static final String MOUNT_BASE = "/cloud-music";
@@ -54,17 +58,21 @@ public class CloudConfigService {
         String odToken = getSecret(KEY_ONEDRIVE_TOKEN);
         String odRegion = settings.findById(KEY_ONEDRIVE_REGION)
                 .map(Setting::getValue).orElse("global");
+        String localPath = settings.findById(KEY_LOCAL_SOURCE_PATH)
+                .map(Setting::getValue).orElse("/source-music");
         return Map.of(
                 "cookie115Set", cookie115 != null && !cookie115.isBlank(),
                 "cookie115Masked", mask(cookie115),
                 "onedriveTokenSet", odToken != null && !odToken.isBlank(),
-                "onedriveRegion", odRegion
+                "onedriveRegion", odRegion,
+                "localSourcePath", localPath
         );
     }
 
     /** 保存配置并触发重新挂载。 */
     @Transactional
-    public Map<String, Object> updateConfig(String cookie115, String onedriveRegion, String onedriveToken) {
+    public Map<String, Object> updateConfig(String cookie115, String onedriveRegion, String onedriveToken,
+                                           String localSourcePath) {
         if (cookie115 != null) {
             if (cookie115.isBlank()) {
                 secrets.deleteById(KEY_115_COOKIE);
@@ -82,9 +90,46 @@ public class CloudConfigService {
         if (onedriveRegion != null && !onedriveRegion.isBlank()) {
             settings.save(new Setting(KEY_ONEDRIVE_REGION, onedriveRegion.trim()));
         }
+        if (localSourcePath != null && !localSourcePath.isBlank()) {
+            String normalized = normalizeLocalPath(localSourcePath.trim());
+            if (normalized != null) {
+                settings.save(new Setting(KEY_LOCAL_SOURCE_PATH, normalized));
+            } else {
+                throw new IllegalArgumentException("本地源目录不合法，仅允许 /source-music、/host-data、/music 下的路径");
+            }
+        }
         // 触发重新挂载
         String result = remount();
         return Map.of("ok", true, "remount", result);
+    }
+
+    /** 获取当前本地源目录（DB 优先，环境变量兜底）。 */
+    @Transactional(readOnly = true)
+    public String getLocalSourcePath(String envDefault) {
+        return settings.findById(KEY_LOCAL_SOURCE_PATH)
+                .map(Setting::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .orElse(envDefault);
+    }
+
+    /** 校验并规范化本地路径，返回 null 表示不合法。 */
+    private String normalizeLocalPath(String path) {
+        try {
+            Path p = Paths.get(path).toAbsolutePath().normalize();
+            String s = p.toString();
+            for (String prefix : ALLOWED_PREFIXES) {
+                if (s.equals(prefix) || s.startsWith(prefix + "/")) {
+                    // 确保目录存在（不存在则尝试创建）
+                    if (!Files.isDirectory(p)) {
+                        try { Files.createDirectories(p); } catch (Exception ignored) {}
+                    }
+                    return s;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** 重新生成 rclone 配置并挂载。返回执行结果摘要。 */

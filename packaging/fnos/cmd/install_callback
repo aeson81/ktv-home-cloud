@@ -9,7 +9,6 @@
 
 VAR_DIR="${TRIM_PKGVAR:-/var/apps/ktv-home-cloud/var}"
 LOG="${TRIM_TEMP_LOGFILE:-/tmp/ktv-home-cloud-install.log}"
-ALIST_DEFAULT_PW="KtvAlist2026ChangeMe"
 # fpk 所在目录（compose 文件位置）
 APP_DIR="$(cd "$(dirname "$0")/../app" && pwd)"
 COMPOSE_FILE="$APP_DIR/docker/docker-compose.yaml"
@@ -33,16 +32,22 @@ get_wizard_value() {
 }
 
 KTV_PORT="$(get_wizard_value "KTV_PORT" "8080")"
-ALIST_PORT="$(get_wizard_value "ALIST_PORT" "5244")"
 SOURCE_MUSIC_PATH="$(get_wizard_value "SOURCE_MUSIC_PATH" "")"
+# 115 Cookie 也可通过向导传入（可选）。
+WIZARD_115_COOKIE="$(get_wizard_value "KTV_115_COOKIE" "")"
 
 # 把端口写入 compose 文件（替换占位符）。
 if [ -f "$COMPOSE_FILE" ]; then
   # KTV 端口：替换 "8080:8080/tcp" 中的主机端口
   sed -i "s/\"8080:8080\/tcp\"/\"${KTV_PORT}:8080\/tcp\"/" "$COMPOSE_FILE" 2>>"$LOG" || true
-  # alist 端口：替换 "5244:5244" 中的主机端口
-  sed -i "s/\"5244:5244\"/\"${ALIST_PORT}:5244\"/" "$COMPOSE_FILE" 2>>"$LOG" || true
-  echo "端口配置：KTV=${KTV_PORT}, alist=${ALIST_PORT}" >> "$LOG"
+  echo "端口配置：KTV=${KTV_PORT}" >> "$LOG"
+  # 如果向导提供了 115 Cookie，写入 compose。
+  if [ -n "$WIZARD_115_COOKIE" ]; then
+    # 转义 Cookie 中的特殊字符（& / \），避免 sed 出错。
+    ESCAPED="$(printf '%s' "$WIZARD_115_COOKIE" | sed 's/[\/&]/\\&/g')"
+    sed -i "s/^\(\s*KTV_115_COOKIE:\s*\)\"\"/\1\"$ESCAPED\"/" "$COMPOSE_FILE" 2>>"$LOG" || true
+    echo "已配置 115 Cookie" >> "$LOG"
+  fi
 fi
 
 # 自定义源目录：如果向导里填写了，保存到配置文件并立即挂载。
@@ -75,15 +80,17 @@ fi
   echo ""
   echo "手机点歌：http://<飞牛IP>:${KTV_PORT}/m"
   echo "管理后台：http://<飞牛IP>:${KTV_PORT}/m/admin"
-  echo "alist 网盘管理：http://<飞牛IP>:${ALIST_PORT}（账号 admin）"
-  echo "alist 管理员密码：${ALIST_DEFAULT_PW}"
-  echo "  （首次登录后请在 alist 网页右下角头像 -> 修改密码）"
   echo ""
-  echo "网盘挂载步骤："
-  echo "1. 用上面的账号密码登录 alist，添加百度网盘 / OneDrive / 115（Cookie 等只填在 alist 网页里）。"
-  echo "2. 回到 KTV 管理后台，点「扫描源路径」，网盘歌曲会自动复制入库（网盘源只读，不会删除网盘文件）。"
+  echo "115 网盘挂载（可选）："
+  echo "1. 在浏览器登录 115.com，按 F12 打开开发者工具，在网络请求中找到 Cookie，"
+  echo "   复制 UID、CID、SEID 三个值，拼成：UID=xxx; CID=xxx; SEID=xxx"
+  echo "2. SSH 到 NAS，编辑 /vol2/@appdata/ktv-home-cloud/docker/docker-compose.yaml，"
+  echo "   找到 KTV_115_COOKIE 一行，填入你的 Cookie 后保存。"
+  echo "3. 在飞牛 Docker 里重启 ktv-app 容器，115 会挂载到 /cloud-music/115。"
+  echo "4. 回到 KTV 管理后台，点「扫描源路径」，网盘歌曲会自动复制入库（只读，不会删除网盘文件）。"
+  echo "   注意：115 Cookie 会过期，失效后需重新获取并更新。"
   echo ""
-  echo "注意：本应用仅适用于可信局域网，请勿把 8080/5244 端口暴露到公网。"
+  echo "注意：本应用仅适用于可信局域网，请勿把 ${KTV_PORT} 端口暴露到公网。"
 } >> "$LOG" 2>&1
 
 exit 0

@@ -28,7 +28,8 @@ public class AdminCloudConfigController {
         return cloudConfigService.updateConfig(
                 body.get("cookie115"),
                 body.get("onedriveRegion"),
-                body.get("onedriveToken"));
+                body.get("onedriveToken"),
+                body.get("localSourcePath"));
     }
 
     @PostMapping("/remount")

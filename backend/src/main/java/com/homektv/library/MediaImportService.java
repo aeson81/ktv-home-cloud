@@ -749,6 +749,13 @@ public class MediaImportService {
     }
 
     private Path sourceRoot() {
+        // DB 配置优先（前端可修改），环境变量兜底。
+        try {
+            Object dbPath = settingService.getAll().get("local.source.path");
+            if (dbPath instanceof String s && !s.isBlank()) {
+                return Path.of(s).toAbsolutePath().normalize();
+            }
+        } catch (Exception ignored) {}
         return Path.of(props.getSourceLibraryPath()).toAbsolutePath().normalize();
     }
 

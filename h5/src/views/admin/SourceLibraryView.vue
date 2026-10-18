@@ -23,6 +23,11 @@
       </div>
       <div v-if="cloudConfigOpen" class="cloud-config-body">
         <div class="cloud-field">
+          <label><strong>本地源目录</strong><small>容器内路径，如 /source-music 或 /host-data/docker/home-ktv/music</small></label>
+          <input v-model="cloudForm.localSourcePath" placeholder="/source-music" />
+          <span v-if="cloudConfig.localSourcePath" class="hint">当前：{{ cloudConfig.localSourcePath }}</span>
+        </div>
+        <div class="cloud-field">
           <label><strong>115 Cookie</strong><small>格式：UID=xxx; CID=xxx; SEID=xxx（浏览器登录 115 后 F12 复制）</small></label>
           <textarea v-model="cloudForm.cookie115" rows="2" placeholder="UID=...; CID=...; SEID=...（留空则清除）"></textarea>
           <span v-if="cloudConfig.cookie115Masked" class="hint">当前：{{ cloudConfig.cookie115Masked }}</span>
@@ -116,8 +121,8 @@ const rows = ref([]), total = ref(0), page = ref(0), totalPages = ref(1), select
 const cleaning = ref(false)
 // 网盘配置 / Cloud drive config
 const cloudConfigOpen = ref(false)
-const cloudConfig = ref({ cookie115Set: false, cookie115Masked: '', onedriveTokenSet: false, onedriveRegion: 'global' })
-const cloudForm = reactive({ cookie115: '', onedriveRegion: 'global', onedriveToken: '' })
+const cloudConfig = ref({ cookie115Set: false, cookie115Masked: '', onedriveTokenSet: false, onedriveRegion: 'global', localSourcePath: '/source-music' })
+const cloudForm = reactive({ cookie115: '', onedriveRegion: 'global', onedriveToken: '', localSourcePath: '' })
 const cloudSaving = ref(false)
 const cloudMsg = ref('')
 
@@ -126,6 +131,7 @@ async function loadCloudConfig() {
     const r = await api.adminCloudConfig()
     cloudConfig.value = r
     cloudForm.onedriveRegion = r.onedriveRegion || 'global'
+    cloudForm.localSourcePath = r.localSourcePath || '/source-music'
   } catch (e) { /* ignore */ }
 }
 async function saveCloudConfig() {
@@ -136,6 +142,7 @@ async function saveCloudConfig() {
       cookie115: cloudForm.cookie115,
       onedriveRegion: cloudForm.onedriveRegion,
       onedriveToken: cloudForm.onedriveToken,
+      localSourcePath: cloudForm.localSourcePath,
     })
     cloudMsg.value = '已保存，挂载结果：' + (r.remount || 'ok')
     cloudForm.cookie115 = ''
