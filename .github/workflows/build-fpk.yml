@@ -36,6 +36,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to houlang mirror
+        uses: docker/login-action@v3
+        with:
+          registry: mirror.houlang.cloud
+          username: ${{ secrets.HOULANG_USERNAME }}
+          password: ${{ secrets.HOULANG_PASSWORD }}
+
       - name: Resolve version
         id: version
         run: |
@@ -51,12 +64,21 @@ jobs:
 
       - name: Build and push KTV image (with cloud-drive patch)
         run: |
+          VER="${{ steps.version.outputs.version }}"
           docker build --build-arg BASE_REGISTRY=docker.io \
             -f backend/Dockerfile \
             -t ghcr.io/aeson81/ktv-home-cloud:latest \
-            -t ghcr.io/aeson81/ktv-home-cloud:${{ steps.version.outputs.version }} .
+            -t ghcr.io/aeson81/ktv-home-cloud:${VER} \
+            -t aeson81/ktv-home-cloud:latest \
+            -t aeson81/ktv-home-cloud:${VER} \
+            -t mirror.houlang.cloud/aeson81/ktv-home-cloud:latest \
+            -t mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER} .
           docker push ghcr.io/aeson81/ktv-home-cloud:latest
-          docker push ghcr.io/aeson81/ktv-home-cloud:${{ steps.version.outputs.version }}
+          docker push ghcr.io/aeson81/ktv-home-cloud:${VER}
+          docker push aeson81/ktv-home-cloud:latest
+          docker push aeson81/ktv-home-cloud:${VER}
+          docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
+          docker push mirror.houlang.cloud/aeson81/ktv-home-cloud:${VER}
 
       - name: Prepare fnpack (vendored, checksum verified)
         run: |

@@ -27,10 +27,9 @@ services:
     stop_grace_period: 1m
 
   ktv:
-    # 注意：docker.m.daocloud.io 有白名单限制，自定义镜像无法通过它拉取。
-    # 如需国内加速，可申请将镜像加入白名单（https://github.com/DaoCloud/public-image-mirror/issues），
-    # 或推送到腾讯云 CCR / 阿里云 ACR 后修改此处地址。
-    image: ghcr.io/aeson81/ktv-home-cloud:latest
+    # 国内经 houlang 镜像站拉取（比直连 ghcr.io 快）。
+    # 如需切换回 GHCR，改为 ghcr.io/aeson81/ktv-home-cloud:latest。
+    image: mirror.houlang.cloud/aeson81/ktv-home-cloud:latest
     container_name: ktv-app
     devices:
       # Intel 核显透传，用于 VAAPI 硬件转码（N100 等）。
