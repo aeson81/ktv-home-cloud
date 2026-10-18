@@ -1,8 +1,5 @@
 #!/bin/bash
-# 安装前检查：Docker 必须可用。
+# 安装前检查：参考官方做法，不做任何前置检查，直接放行。
+# （之前这里检查 docker info，在某些执行用户下会误报失败导致安装回滚。）
 
-if ! docker info >/dev/null 2>&1; then
-  echo "安装需要飞牛的 Docker 服务处于运行状态，请先在飞牛中启用 Docker。" >&2
-  exit 1
-fi
 exit 0
