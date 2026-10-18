@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.claude
+design
+music
+sample-music
+android-tv
+backend/target
+backend/data
+h5/node_modules
+h5/.vite
+*.log
+.DS_Store
+!dist/tv-apk/*.apk

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="karaoke_lyric_blue">#1769FF</color>
+    <!-- 复用原型 design/prototype/style.css 深色主题变量 -->
+    <color name="bg">#08090d</color>
+    <color name="panel">#12141c</color>
+    <color name="gold">#f0c742</color>
+    <color name="gold2">#ffe17a</color>
+    <color name="karaoke_red">#ff5b68</color>
+    <color name="karaoke_pink">#ff9aa7</color>
+    <color name="audio_accent">#ff647c</color>
+    <color name="purple">#a78bfa</color>
+    <color name="red">#f87171</color>
+    <color name="green">#34d399</color>
+    <color name="text">#f0f2f7</color>
+    <color name="dim">#a3b0c2</color>
+    <color name="dim2">#768398</color>
+    <color name="tag_ktv">#f0c742</color>
+    <color name="tag_mv">#38bdf8</color>
+    <color name="tag_audio">#94a3b8</color>
+    <color name="glass_border">#22ffffff</color>
+</resources>

@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: home-ktv-server
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ktv}
+    username: ${SPRING_DATASOURCE_USERNAME:ktv}
+    password: ${SPRING_DATASOURCE_PASSWORD:ktv}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # 由 Flyway 建表，JPA 只校验映射
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# 应用自定义配置
+app:
+  source-library-path: ${KTV_SOURCE_LIBRARY_PATH:/source-music}
+  cloud-library-path: ${KTV_CLOUD_LIBRARY_PATH:}
+  ktv-library-path: ${KTV_LIBRARY_PATH:/music}
+  data-path: ${KTV_DATA_PATH:./data}
+  config-master-key-path: ${KTV_CONFIG_MASTER_KEY_PATH:/data/secrets/config.key}
+  ffprobe-path: ${KTV_FFPROBE_PATH:ffprobe}
+  transcode:
+    ffmpeg-path: ${KTV_FFMPEG_PATH:ffmpeg}
+    dri-path: ${KTV_DRI_PATH:/dev/dri}
+    drm-sys-path: ${KTV_DRM_SYS_PATH:/sys/class/drm}
+    rkmpp-device-path: ${KTV_RKMPP_DEVICE_PATH:/dev/mpp_service}
+  discovery:
+    enabled: ${KTV_DISCOVERY_ENABLED:true}
+    instance-name: ${KTV_DISCOVERY_NAME:家庭KTV}
+    udp-port: ${KTV_DISCOVERY_UDP_PORT:18888}
+  release:
+    version: ${KTV_RELEASE_VERSION:0.1.0-dev}
+    version-code: ${KTV_RELEASE_VERSION_CODE:1}
+    armeabi-v7a-apk: ${KTV_RELEASE_ARMEABI_V7A_APK:classpath:/static/tv-apk/home-ktv-tv-armeabi-v7a.apk}
+    arm64-v8a-apk: ${KTV_RELEASE_ARM64_V8A_APK:classpath:/static/tv-apk/home-ktv-tv-arm64-v8a.apk}
+    announcement:
+      enabled: ${KTV_RELEASE_NOTICE_ENABLED:true}
+      id: ${KTV_RELEASE_NOTICE_ID:${KTV_RELEASE_VERSION:0.1.0-dev}}
+      title: ${KTV_RELEASE_NOTICE_TITLE:Android TV 客户端已更新}
+      message: ${KTV_RELEASE_NOTICE_MESSAGE:新版本已随服务端发布，请根据电视设备架构下载并安装对应的 Android TV APK。升级后请进入“原始音乐管理”，先执行“自动清理”，再重新扫描原始音乐路径。}
+  ai:
+    enabled: ${KTV_AI_ENABLED:false}
+    base-url: ${KTV_AI_BASE_URL:}
+    api-key: ${KTV_AI_API_KEY:}
+    model: ${KTV_AI_MODEL:}
+    bulk-model: ${KTV_AI_BULK_MODEL:${KTV_AI_MODEL:}}
+    reasoning-model: ${KTV_AI_REASONING_MODEL:}
+    json-mode: ${KTV_AI_JSON_MODE:AUTO}
+    bulk-concurrency: ${KTV_AI_BULK_CONCURRENCY:2}
+    reasoning-concurrency: ${KTV_AI_REASONING_CONCURRENCY:1}
+    auto-apply-confidence: ${KTV_AI_AUTO_APPLY_CONFIDENCE:0.90}
+    connect-timeout-seconds: 10
+    read-timeout-seconds: 60
+
+logging:
+  level:
+    com.homektv: INFO

@@ -1,0 +1,91 @@
+# Cloud-drive overlay for Home KTV / 网盘挂载扩展。
+#
+# 在 NAS 部署文件的基础上，叠加 alist（聚合百度网盘 / OneDrive / 115）与
+# rclone 挂载 sidecar，把三个网盘统一挂载为 KTV 的只读源目录 /cloud-music。
+#
+# 用法（与 docker-compose.nas.yml 叠加使用，--build 会编译含网盘补丁的后端）：
+#   echo 'KTV_ALIST_PASSWORD=你的alist密码' > .env
+#   docker compose -f docker-compose.nas.yml -f docker-compose.cloud.yml up -d --build --wait
+#
+# 网盘账号（百度/OneDrive/115 的 Cookie、Token）请在 alist 网页管理端自行填写：
+#   http://<NAS_IP>:5244
+name: home-ktv
+
+services:
+  # alist：把百度网盘、OneDrive、115 聚合成统一的 WebDAV 服务。
+  # 各网盘的添加方式见 docs/cloud-drive.md。
+  alist:
+    # 国内可用 docker.m.daocloud.io 加速；直连 Docker Hub 时可改为 xhofe/alist:latest
+    image: docker.m.daocloud.io/xhofe/alist:latest
+    container_name: ktv-alist
+    ports:
+      - "5244:5244"
+    volumes:
+      - type: bind
+        source: ./alist-data
+        target: /opt/alist/data
+        bind:
+          create_host_path: true
+    restart: unless-stopped
+
+  # cloud-mount：把 alist 的 WebDAV（/dav）用 rclone + FUSE 挂载到 ./cloud-music。
+  # 挂载点使用 rshared 传播，ktv 容器以 rslave 方式共享同一挂载。
+  cloud-mount:
+    image: docker.m.daocloud.io/rclone/rclone:latest
+    container_name: ktv-cloud-mount
+    devices:
+      - /dev/fuse:/dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      RCLONE_CONFIG: /config/rclone/rclone.conf
+      KTV_ALIST_URL: http://alist:5244/dav
+      # alist 的 admin 密码：在 alist 网页端设置后，写入项目目录下的 .env
+      KTV_ALIST_PASSWORD: ${KTV_ALIST_PASSWORD:?请在项目目录创建 .env 并写入 KTV_ALIST_PASSWORD=你的alist密码}
+      TZ: Asia/Shanghai
+    volumes:
+      - type: bind
+        source: ./cloud-music
+        target: /mnt/cloud
+        bind:
+          create_host_path: true
+          propagation: rshared
+      - type: bind
+        source: ./scripts/rclone-mount.sh
+        target: /scripts/rclone-mount.sh
+        read_only: true
+    entrypoint: ["/bin/sh", "/scripts/rclone-mount.sh"]
+    depends_on:
+      alist:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "rclone lsd alist: --max-depth 1 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # ktv：叠加网盘只读源。后端已打补丁：/cloud-music 复制入库、永不删除网盘文件。
+  ktv:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        BASE_REGISTRY: docker.m.daocloud.io
+    # 本地构建的镜像名；不要再使用上游的 ghcr 预编译镜像（它不含网盘补丁）。
+    image: ktv-home-cloud:latest
+    environment:
+      KTV_CLOUD_LIBRARY_PATH: /cloud-music
+    volumes:
+      - type: bind
+        source: ./cloud-music
+        target: /cloud-music
+        bind:
+          create_host_path: true
+          propagation: rslave
+    depends_on:
+      cloud-mount:
+        condition: service_started

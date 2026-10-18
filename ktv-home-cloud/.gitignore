@@ -1,0 +1,39 @@
+，# ===== Java / Spring Boot =====
+backend/target/
+*.class
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+*.log
+
+# ===== Node / Vue H5 =====
+h5/node_modules/
+h5/dist/
+h5/.vite/
+npm-debug.log*
+
+# ===== Android / TV APK =====
+android-tv/.gradle/
+android-tv/build/
+android-tv/app/build/
+android-tv/local.properties
+android-tv/.idea/
+android-tv/third_party/
+*.apk
+*.aab
+*.keystore
+
+# ===== IDE / OS =====
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ===== 本地数据 =====
+sample-music/
+music/
+/source-music/
+/postgres/
+/postgres-dev/
+backend/data/
+/data/
+backend/src/main/resources/application-local.yml

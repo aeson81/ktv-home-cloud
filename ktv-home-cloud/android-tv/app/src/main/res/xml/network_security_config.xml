@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  局域网明文通信：NAS 服务端为内网 http/ws，无 TLS（详设§12.1）。
+  Android 9+ 默认禁止明文，这里全局放开 cleartext。
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
