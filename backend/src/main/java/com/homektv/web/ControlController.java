@@ -118,12 +118,12 @@ public class ControlController {
             }
             case "toggle_subtitle" -> {
                 boolean visible = playbackService.toggleSubtitle();
-                broadcast(WsEvent.of(WsEvent.SUBTITLE_CHANGED, java.util.Map.of("visible", visible)));
+                broadcaster.broadcast(WsEvent.of(WsEvent.SUBTITLE_CHANGED, java.util.Map.of("visible", visible)));
             }
             case "set_equalizer" -> {
                 String preset = req.strParam("preset");
                 playbackService.setEqualizerPreset(preset);
-                broadcast(WsEvent.of(WsEvent.EQUALIZER_CHANGED, java.util.Map.of("preset", preset)));
+                broadcaster.broadcast(WsEvent.of(WsEvent.EQUALIZER_CHANGED, java.util.Map.of("preset", preset)));
             }
             case "effect" -> broadcaster.broadcast(
                     WsEvent.of(WsEvent.EFFECT_PLAY, java.util.Map.of("effect_id", req.strParam("effect_id"))));
