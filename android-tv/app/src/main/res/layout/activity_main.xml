@@ -377,4 +377,24 @@
             <LinearLayout android:id="@+id/queueList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
         </ScrollView>
     </LinearLayout>
+
+    <!-- 播放控制条：切歌/音量/均衡器/原伴唱/字幕 -->
+    <LinearLayout
+        android:id="@+id/playbackControlBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="120dp"
+        android:background="@drawable/player_glass"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone">
+        <Button android:id="@+id/btnCutSong" android:layout_width="wrap_content" android:layout_height="56dp" android:text="切歌" android:textSize="16sp" />
+        <Button android:id="@+id/btnVolDown" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="8dp" android:text="音量-" android:textSize="16sp" />
+        <Button android:id="@+id/btnVolUp" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="8dp" android:text="音量+" android:textSize="16sp" />
+        <Button android:id="@+id/btnEqualizer" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="8dp" android:text="均衡器" android:textSize="16sp" />
+        <Button android:id="@+id/btnVocalToggle" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="8dp" android:text="原/伴唱" android:textSize="16sp" />
+        <Button android:id="@+id/btnSubtitle" android:layout_width="wrap_content" android:layout_height="56dp" android:layout_marginStart="8dp" android:text="字幕" android:textSize="16sp" />
+    </LinearLayout>
 </FrameLayout>

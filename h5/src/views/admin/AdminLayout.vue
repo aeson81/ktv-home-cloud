@@ -189,4 +189,33 @@ nav { padding:16px 12px; }.nav-label { padding:0 10px 8px; font-size:11px; color
 .admin-shell .status.amber { background:rgba(56,189,248,.12) !important; color:#38bdf8 !important; }
 .admin-shell .status.red { background:rgba(248,113,113,.12) !important; color:#f87171 !important; }
 .admin-shell .status.neutral { background:rgba(255,255,255,.06) !important; color:#aeb7c5 !important; }
+/* ===== 仪表盘白色卡片强制深色 ===== */
+.admin-shell .stat-card, .admin-shell .stat, .admin-shell .metric-card,
+.admin-shell .dashboard-card, .admin-shell .overview-card,
+.admin-shell [class*="stat"], .admin-shell .panel, .admin-shell .widget {
+  background:#181d25 !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  color:#f7f8fb !important;
+}
+.admin-shell .stat-card *, .admin-shell .stat *, .admin-shell .metric-card * {
+  color:#f7f8fb !important;
+}
+.admin-shell .stat-card small, .admin-shell .stat small, .admin-shell .metric-card small,
+.admin-shell .stat-card .dim, .admin-shell .stat .dim {
+  color:#aeb7c5 !important;
+}
+/* 扫描进度条区域 */
+.admin-shell .scan-progress, .admin-shell .progress-wrap, .admin-shell .scan-status {
+  background:#181d25 !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+  color:#f7f8fb !important;
+}
+/* 表格容器 */
+.admin-shell .table-wrap, .admin-shell .table-container, .admin-shell .list-wrap {
+  background:#181d25 !important;
+  border:1px solid rgba(255,255,255,.08) !important;
+}
+.admin-shell .table-wrap *, .admin-shell .table-container * {
+  color:#f7f8fb !important;
+}
 </style>

@@ -57,11 +57,14 @@ public class MediaImportService {
     private final LibraryScanService scanService;
     private final SettingService settingService;
     private final MediaTranscoder mediaTranscoder;
-    private final ExecutorService transcodeExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread thread = new Thread(r, "source-library-transcode");
-        thread.setDaemon(true);
-        return thread;
-    });
+    // 转码并发按核数自动适配：N100 为 4 核，用核数-1（最少1），留1核给系统与其他任务
+    private final ExecutorService transcodeExecutor = Executors.newFixedThreadPool(
+        Math.max(1, Runtime.getRuntime().availableProcessors() - 1),
+        r -> {
+            Thread thread = new Thread(r, "source-library-transcode");
+            thread.setDaemon(true);
+            return thread;
+        });
     private final ExecutorService scanExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "source-library-scan");
         thread.setDaemon(true);

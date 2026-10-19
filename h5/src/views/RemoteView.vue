@@ -44,6 +44,17 @@
       <button v-if="canVocal" class="track-fix" @click="swapVocalTracks">原唱和伴唱弄反了？纠正并记住</button>
     </section>
 
+    <!-- 均衡器 / Equalizer -->
+    <section class="sec">
+      <div class="section-label"><b>均衡器</b><span>预设同步到电视</span></div>
+      <div class="grid4">
+        <button v-for="p in eqPresets" :key="p.id" class="fx" :class="{ on: player.equalizerPreset === p.id }" @click="setEqualizer(p.id)">
+          {{ p.label }}
+        </button>
+      </div>
+      <div class="note">当前：{{ eqCurrentLabel }}，修改后电视端同步显示</div>
+    </section>
+
     <!-- 氛围音效（P3.1 完整；此处已可发送）/ Ambience Effects (P3.1 complete; available here) -->
     <section class="sec">
       <div class="section-label"><b>现场气氛</b><span>发送到电视</span></div>
@@ -172,6 +183,28 @@ async function swapVocalTracks() {
   if (!await confirmDialog(`将永久更正《${song.value?.title || ''}》的原唱和伴唱标记。`, { title: '纠正音轨标记' })) return
   try { await controls.swapVocalTracks(); toast('已纠正，本歌曲下次播放继续生效') }
   catch (e) { toast(e.message || '纠正失败') }
+}
+/**
+ * 均衡器预设列表
+ */
+const eqPresets = [
+  { id: 'standard', label: '标准' },
+  { id: 'pop', label: '流行' },
+  { id: 'rock', label: '摇滚' },
+  { id: 'jazz', label: '爵士' },
+  { id: 'vocal', label: '人声' },
+  { id: 'bass', label: '低音' },
+]
+const eqCurrentLabel = computed(() => {
+  const p = eqPresets.find(x => x.id === player.value?.equalizerPreset)
+  return p ? p.label : '标准'
+})
+/**
+ * 设置均衡器预设（同步到电视）
+ */
+async function setEqualizer(preset) {
+  try { await controls.setEqualizer(preset); toast('均衡器已切到' + eqPresets.find(x => x.id === preset)?.label) }
+  catch (e) { toast(e.message || '切换失败') }
 }
 /**
  * 发送氛围音效（鼓掌/欢呼/倒彩/干杯）。

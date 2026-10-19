@@ -41,6 +41,14 @@ public class PlayerState {
     @Column(name = "vocal_mode", nullable = false)
     private String vocalMode = "accompaniment";
 
+    /** 字幕是否可见 */
+    @Column(name = "subtitle_visible", nullable = false)
+    private boolean subtitleVisible = true;
+
+    /** 均衡器预设：standard/pop/rock/jazz/vocal/bass */
+    @Column(name = "equalizer_preset", nullable = false)
+    private String equalizerPreset = "standard";
+
     @Generated(event = EventType.INSERT)
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime updatedAt;
@@ -59,5 +67,9 @@ public class PlayerState {
     public void setMuted(boolean muted) { this.muted = muted; }
     public String getVocalMode() { return vocalMode; }
     public void setVocalMode(String vocalMode) { this.vocalMode = vocalMode; }
+    public boolean isSubtitleVisible() { return subtitleVisible; }
+    public void setSubtitleVisible(boolean subtitleVisible) { this.subtitleVisible = subtitleVisible; }
+    public String getEqualizerPreset() { return equalizerPreset; }
+    public void setEqualizerPreset(String equalizerPreset) { this.equalizerPreset = equalizerPreset; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }
 }

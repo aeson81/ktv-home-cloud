@@ -18,6 +18,8 @@ public record WsEvent(String type, Object payload) {
     public static final String PROGRESS = "progress";
     public static final String VOLUME_CHANGED = "volume_changed";
     public static final String VOCAL_CHANGED = "vocal_changed";
+    public static final String SUBTITLE_CHANGED = "subtitle_changed";
+    public static final String EQUALIZER_CHANGED = "equalizer_changed";
     public static final String EFFECT_PLAY = "effect_play";
     public static final String TOAST = "toast";
 

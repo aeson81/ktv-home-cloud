@@ -391,6 +391,13 @@ class MainActivity : AppCompatActivity(), KtvSocket.Listener {
         binding.remoteMute.setOnClickListener { sendControl("mute", "{\"muted\":${!currentMuted}}") }
         binding.remoteQueue.setOnClickListener { showQueueOverlay() }
         binding.remoteMicrophone.setOnClickListener { toggleMicrophoneMonitor() }
+        // 播放控制条
+        binding.btnCutSong.setOnClickListener { sendControl("next") }
+        binding.btnVolDown.setOnClickListener { changeVolume(-10) }
+        binding.btnVolUp.setOnClickListener { changeVolume(10) }
+        binding.btnEqualizer.setOnClickListener { showEqualizer() }
+        binding.btnVocalToggle.setOnClickListener { toggleVocal() }
+        binding.btnSubtitle.setOnClickListener { toggleSubtitle() }
         updateMicrophoneButton()
         binding.queueClose.setOnClickListener { binding.queueOverlay.visibility = View.GONE }
         binding.btnVocalOriginal.setOnClickListener {
@@ -470,6 +477,17 @@ class MainActivity : AppCompatActivity(), KtvSocket.Listener {
     /** 原唱 ↔ 伴唱切换（遥控菜单按钮与方向下键共用）。 */
     private fun toggleVocal() {
         sendControl("set_vocal", "{\"mode\":\"${if (currentVocalMode == "original") "accompaniment" else "original"}\"}")
+    }
+
+    private fun showEqualizer() {
+        // TV 为遥控模式，音频在服务端渲染，本地均衡器无效
+        // TODO: 后端实现服务端均衡器后，此处改为发送控制指令
+        android.widget.Toast.makeText(this, "均衡器需服务端支持，开发中", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    private fun toggleSubtitle() {
+        // 字幕开关：发送控制指令到后端
+        sendControl("toggle_subtitle", "{}")
     }
 
     private fun changeVolume(delta: Int) {

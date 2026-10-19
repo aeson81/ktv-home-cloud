@@ -213,6 +213,8 @@ export function makeControls(clientToken) {
     mute: (muted) => c('mute', { muted }),
     setVocal: (mode) => c('set_vocal', { mode }),
     swapVocalTracks: () => c('swap_vocal_tracks', {}),
+    setEqualizer: (preset) => c('set_equalizer', { preset }),
+    toggleSubtitle: () => c('toggle_subtitle', {}),
     effect: (effectId) => c('effect', { effect_id: effectId })
   }
 }

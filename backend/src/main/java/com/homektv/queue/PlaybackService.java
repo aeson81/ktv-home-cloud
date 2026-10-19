@@ -178,6 +178,27 @@ public class PlaybackService {
         return playerRepo.save(ps);
     }
 
+    /** 字幕显示/隐藏切换。 */
+    @Transactional
+    public boolean toggleSubtitle() {
+        PlayerState ps = playerRepo.getSingleton();
+        ps.setSubtitleVisible(!ps.isSubtitleVisible());
+        playerRepo.save(ps);
+        return ps.isSubtitleVisible();
+    }
+
+    /** 设置均衡器预设。 */
+    @Transactional
+    public PlayerState setEqualizerPreset(String preset) {
+        java.util.Set<String> valid = java.util.Set.of("standard", "pop", "rock", "jazz", "vocal", "bass");
+        if (preset == null || !valid.contains(preset)) {
+            throw new ApiException("INVALID_ACTION", "无效的均衡器预设：" + preset);
+        }
+        PlayerState ps = playerRepo.getSingleton();
+        ps.setEqualizerPreset(preset);
+        return playerRepo.save(ps);
+    }
+
     /** 当前歌曲原/伴唱标记反转时，交换前两条音轨的语义并持久保存。 */
     @Transactional
     public PlayerState swapVocalTracks() {
