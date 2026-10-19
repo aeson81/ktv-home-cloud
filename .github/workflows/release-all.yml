@@ -136,12 +136,13 @@ jobs:
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#release-v}"
           TAG="v${VERSION}"
+          REPO="aeson81/ktv-home-cloud"
           # 创建或获取 Release
-          gh release view "${TAG}" > /dev/null 2>&1 || gh release create "${TAG}" \
+          gh release view "${TAG}" --repo "${REPO}" > /dev/null 2>&1 || gh release create "${TAG}" --repo "${REPO}" \
             --title "K无限 v${VERSION}" \
             --notes "K无限家庭KTV v${VERSION}：fpk 安装包 + Android TV APK（armeabi-v7a/arm64-v8a）"
           # 上传文件
-          find ./artifacts -type f \( -name "*.fpk" -o -name "*.apk" \) -exec gh release upload "${TAG}" --clobber {} \;
+          find ./artifacts -type f \( -name "*.fpk" -o -name "*.apk" \) -exec gh release upload "${TAG}" --repo "${REPO}" --clobber {} \;
           echo "Release ${TAG} published"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
