@@ -1,1 +1,0 @@
-[{"items":[{"helpText":"卸载 K无限","type":"tips"},{"default":"yes","key":"keep_data","options":[{"label":"保留数据（推荐）：曲库、数据库、网盘配置保留，重装后可继续使用","value":"yes"},{"label":"清空数据：删除所有歌曲、播放记录和配置","value":"no"}],"title":"数据保留","type":"radio"}],"stepTitle":"卸载选项"}]
