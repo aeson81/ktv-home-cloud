@@ -49,16 +49,21 @@ jobs:
         run: |
           VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#release-v}"
-          ALIYUN="${{ secrets.ALIYUN_REGISTRY }}"
-          # 构建标签：GHCR 必推，阿里云可选（secrets 未配置时跳过）
-          TAGS="-t ghcr.io/aeson81/ktv-home-cloud:latest -t ghcr.io/aeson81/ktv-home-cloud:${VERSION}"
-          if [ -n "$ALIYUN" ]; then
-            TAGS="$TAGS -t $ALIYUN/aeson81/ktv-home-cloud:latest -t $ALIYUN/aeson81/ktv-home-cloud:${VERSION}"
-          fi
+          # 先推 GHCR（必成功）
           docker buildx build --platform linux/amd64,linux/arm64 \
             -f backend/Dockerfile \
-            $TAGS \
+            -t ghcr.io/aeson81/ktv-home-cloud:latest \
+            -t ghcr.io/aeson81/ktv-home-cloud:${VERSION} \
             --push .
+          # 再推阿里云（可选，失败不阻塞）
+          ALIYUN="${{ secrets.ALIYUN_REGISTRY }}"
+          if [ -n "$ALIYUN" ]; then
+            docker buildx build --platform linux/amd64,linux/arm64 \
+              -f backend/Dockerfile \
+              -t $ALIYUN/aeson81/ktv-home-cloud:latest \
+              -t $ALIYUN/aeson81/ktv-home-cloud:${VERSION} \
+              --push . || echo "Aliyun push failed, skipped"
+          fi
 
       - name: Prepare fnpack (vendored, checksum verified)
         run: |
