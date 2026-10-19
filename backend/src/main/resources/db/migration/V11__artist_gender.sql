@@ -1,2 +1,0 @@
-ALTER TABLE songs
-    ADD COLUMN IF NOT EXISTS artist_gender VARCHAR(32) NOT NULL DEFAULT '未知';
